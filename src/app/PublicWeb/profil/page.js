@@ -45,6 +45,8 @@ export default function ProfilPage() {
   const [hasSantriData, setHasSantriData] = useState(false);
   const [paymentData, setPaymentData] = useState(null);
   const [fetchError, setFetchError] = useState(null);
+  const [pendaftaranAktif, setPendaftaranAktif] = useState(true);
+  const [notif, setNotif] = useState(null);
 
   useEffect(() => {
     if (!user || !getAuthToken()) {
@@ -91,14 +93,33 @@ export default function ProfilPage() {
             setPaymentData(paymentResult.data);
             localStorage.setItem(`payment_data_${user.email}`, JSON.stringify(paymentResult.data));
           }
+        } else if (paymentResponse.status !== 404) {
+          const errText = await paymentResponse.text().catch(() => 'Unknown error');
+          console.error('Payment fetch failed:', paymentResponse.status, errText);
+          setFetchError(prev => prev ? `${prev}\nPembayaran: ${paymentResponse.status}` : `Pembayaran: ${paymentResponse.status}`);
         }
       } catch (error) {
         console.error('Error fetching status:', error);
-        setFetchError('Gagal mengambil data dari server. Pastikan server backend sedang berjalan.');
+        const msg = error?.message || 'Gagal mengambil data dari server. Pastikan server backend sedang berjalan.';
+        setFetchError(msg);
       }
     };
 
     fetchLatestStatus();
+
+    const fetchPendaftaranAktif = async () => {
+      try {
+        const res = await apiFetch('/api/settings/pendaftaran_aktif');
+        if (res.ok) {
+          const data = await res.json();
+          setPendaftaranAktif(!!data.pendaftaran_aktif);
+        }
+      } catch (err) {
+        console.error('Failed to fetch pendaftaran aktif:', err);
+      }
+    };
+
+    fetchPendaftaranAktif();
   }, [router, user]);
 
   const handleLogout = () => {
@@ -148,6 +169,12 @@ export default function ProfilPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-white py-8 px-4">
       <div className="max-w-2xl mx-auto">
+        {notif && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center justify-between">
+            <p className="text-sm text-red-700">{notif}</p>
+            <button onClick={() => setNotif(null)} className="text-red-500 hover:text-red-700 ml-2">&times;</button>
+          </div>
+        )}
         <div className="bg-white rounded-2xl shadow-lg overflow-hidden mb-6">
           <div className="bg-green-700 h-32 relative">
             <div className="absolute -bottom-12 left-1/2 transform -translate-x-1/2">
@@ -248,9 +275,15 @@ export default function ProfilPage() {
 
         <div className="bg-white rounded-2xl shadow-lg overflow-hidden mb-6">
           <div className="border-b border-gray-100">
-            <Link
-              href="/PublicWeb/pendaftaran"
-              className="flex items-center gap-4 p-4 hover:bg-gray-50 transition-colors"
+            <button
+              onClick={() => {
+                if (!pendaftaranAktif) {
+                  setNotif('Pendaftaran belum dibuka. Silakan kembali lagi nanti.');
+                  return;
+                }
+                router.push('/PublicWeb/pendaftaran');
+              }}
+              className="flex items-center gap-4 p-4 hover:bg-gray-50 transition-colors w-full text-left"
             >
               <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
                 <HiDocumentText className="w-6 h-6 text-green-700" />
@@ -262,7 +295,7 @@ export default function ProfilPage() {
                 </p>
               </div>
               <HiChevronDown className="w-5 h-5 text-gray-400 rotate-[-90deg]" />
-            </Link>
+            </button>
 
             {isRegistrationFilled && (
               <div className="px-4 pb-4">

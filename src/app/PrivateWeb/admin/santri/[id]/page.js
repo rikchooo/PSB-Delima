@@ -7,12 +7,13 @@ import { useRouter, useParams } from "next/navigation";
 import PrivateHeader from "@/components/PrivateHeader";
 
 export default function SantriDetail() {
-  // State untuk data santri, loading, error, dan status
   const [santri, setSantri] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [status, setStatus] = useState("");
   const [authChecked, setAuthChecked] = useState(false);
+  const [pembayaran, setPembayaran] = useState(null);
+  const [biayaDetail, setBiayaDetail] = useState(0);
   const router = useRouter();
   const params = useParams();
 
@@ -74,9 +75,23 @@ export default function SantriDetail() {
           telpIbu: data.telp_ibu,
           status: data.status,
           createdAt: data.created_at,
+          tahunPendaftaran: data.tahun_pendaftaran,
         });
         
         setStatus(data.status || "pending");
+
+        const year = String(data.tahun_pendaftaran || new Date(data.created_at).getFullYear());
+        const biayaRes = await apiFetch(`/api/settings/biaya/${year}`);
+        if (biayaRes.ok) {
+          const biayaData = await biayaRes.json();
+          setBiayaDetail(biayaData.biaya || 0);
+        }
+
+        const paymentRes = await apiFetch(`/api/pembayaran/pendaftaran/${params.id}`);
+        if (paymentRes.ok) {
+          const paymentData = await paymentRes.json();
+          setPembayaran(paymentData.data || null);
+        }
       } catch (err) {
         console.error('Error fetching ', err);
         setError(err.message);
@@ -94,6 +109,22 @@ export default function SantriDetail() {
       router.back();
     } else {
       router.push("/PrivateWeb/admin");
+    }
+  };
+
+  const updatePaymentStatus = async (newStatus) => {
+    if (!pembayaran?.id) return;
+    try {
+      const res = await apiFetch(`/api/pembayaran/${pembayaran.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status_pembayaran: newStatus }),
+      });
+      if (!res.ok) throw new Error('Gagal memperbarui status pembayaran');
+      const updated = await res.json();
+      setPembayaran(prev => ({ ...prev, status_pembayaran: newStatus, ...updated.data }));
+      alert(`Status pembayaran berhasil diubah menjadi ${newStatus}`);
+    } catch (err) {
+      alert(`Gagal memperbarui pembayaran: ${err.message}`);
     }
   };
 
@@ -283,6 +314,10 @@ export default function SantriDetail() {
                 <p className="font-medium text-sm sm:text-base text-gray-900 break-words">{santri?.email || '-'}</p>
               </div>
               <div className="bg-gray-50 rounded-lg p-3 sm:p-4 border border-gray-100">
+                <p className="text-xs sm:text-sm text-gray-500 mb-1">Tahun Pendaftaran</p>
+                <p className="font-medium text-sm sm:text-base text-gray-900">{santri?.tahunPendaftaran || (santri?.createdAt ? new Date(santri.createdAt).getFullYear() : '-')}</p>
+              </div>
+              <div className="bg-gray-50 rounded-lg p-3 sm:p-4 border border-gray-100">
                 <p className="text-xs sm:text-sm text-gray-500 mb-1">Tanggal Daftar</p>
                 <p className="font-medium text-sm sm:text-base text-gray-900">
                   {santri?.createdAt ? new Date(santri.createdAt).toLocaleDateString('id-ID', {
@@ -295,6 +330,63 @@ export default function SantriDetail() {
                 </p>
               </div>
             </div>
+          </section>
+
+          <section 
+            aria-labelledby="pembayaran-info"
+            className="bg-white rounded-xl sm:rounded-2xl shadow-lg sm:shadow-xl p-4 sm:p-6 md:p-8 hover:shadow-xl sm:hover:shadow-2xl transition-shadow duration-300"
+          >
+            <h2 id="pembayaran-info" className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 mb-4 sm:mb-6">
+              Data Pembayaran
+            </h2>
+            {pembayaran ? (
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 md:gap-6">
+                  <div className="bg-gray-50 rounded-lg p-3 sm:p-4 border border-gray-100">
+                    <p className="text-xs sm:text-sm text-gray-500 mb-1">Status</p>
+                    <p className="font-medium text-sm sm:text-base text-gray-900 capitalize">{pembayaran.status_pembayaran || '-'}</p>
+                  </div>
+                  <div className="bg-gray-50 rounded-lg p-3 sm:p-4 border border-gray-100">
+                    <p className="text-xs sm:text-sm text-gray-500 mb-1">Nominal</p>
+                    <p className="font-medium text-sm sm:text-base text-gray-900">Rp {biayaDetail ? Number(biayaDetail).toLocaleString('id-ID') : '-'}</p>
+                  </div>
+                  <div className="bg-gray-50 rounded-lg p-3 sm:p-4 border border-gray-100">
+                    <p className="text-xs sm:text-sm text-gray-500 mb-1">Metode</p>
+                    <p className="font-medium text-sm sm:text-base text-gray-900">{pembayaran.metode_pembayaran || '-'}</p>
+                  </div>
+                  <div className="bg-gray-50 rounded-lg p-3 sm:p-4 border border-gray-100">
+                    <p className="text-xs sm:text-sm text-gray-500 mb-1">Tanggal</p>
+                    <p className="font-medium text-sm sm:text-base text-gray-900">
+                      {pembayaran.created_at ? new Date(pembayaran.created_at).toLocaleDateString('id-ID', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      }) : '-'}
+                    </p>
+                  </div>
+                </div>
+                {pembayaran.bukti_pembayaran && (
+                  <div className="bg-gray-50 rounded-lg p-3 sm:p-4 border border-gray-100">
+                    <p className="text-xs sm:text-sm text-gray-500 mb-1">Bukti Pembayaran</p>
+                    <a href={pembayaran.bukti_pembayaran} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline text-sm">Lihat Bukti</a>
+                  </div>
+                )}
+                {pembayaran.status_pembayaran === 'submitted' && (
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      onClick={() => updatePaymentStatus('lunas')}
+                      className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
+                    >
+                      Konfirmasi
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <p className="text-sm text-gray-500">Belum ada data pembayaran</p>
+            )}
           </section>
         </div>
       </main>

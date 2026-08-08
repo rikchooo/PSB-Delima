@@ -154,13 +154,13 @@ export default function InputNilaiPage() {
 
       const result = await response.json();
       
-      alert("✅ Nilai berhasil disimpan!");
+      alert("Nilai berhasil disimpan!");
       
       router.back();
       
     } catch (err) {
       console.error('Error submitting nilai:', err);
-      alert(`❌ Gagal menyimpan nilai: ${err.message}`);
+      alert(`Gagal menyimpan nilai: ${err.message}`);
     } finally {
       setSubmitting(false);
     }
@@ -205,16 +205,6 @@ export default function InputNilaiPage() {
 
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
-          <button
-            onClick={handleBack}
-            className="flex items-center text-gray-700 hover:text-green-600 mb-6 transition-colors"
-          >
-            <svg className="w-5 h-5 sm:w-6 sm:h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-            <span className="font-semibold text-base sm:text-lg">Kembali</span>
-          </button>
-          
           <div className="bg-white rounded-2xl shadow-xl p-6 md:p-8">
             <div className="flex items-center mb-6">
               <div className="bg-gradient-to-br from-blue-500 to-blue-600 p-3 rounded-xl mr-4">
@@ -275,7 +265,7 @@ export default function InputNilaiPage() {
                 </div>
                 <h3 className="text-xl font-bold text-gray-900">Nilai Al-Quran</h3>
               </div>
-               
+              
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -320,7 +310,7 @@ export default function InputNilaiPage() {
                 </div>
                 <h3 className="text-xl font-bold text-gray-900">Nilai Kitab Kuning</h3>
               </div>
-               
+              
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -366,9 +356,8 @@ export default function InputNilaiPage() {
                 onChange={handleInputChange}
                 rows={4}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition resize-none"
-                placeholder="Tambahkan catatan atau komentar untuk santri ini..."
+                placeholder="Tambahkan catatan atau komentar untuk santri"
               />
-              <p className="text-xs text-gray-500 mt-1">Contoh: Perlu pembinaan khusus di bidang tahsin, Sangat berbakat di bidang kitab kuning, dll.</p>
             </div>
 
             <div className="flex justify-end gap-4 pt-6">
@@ -397,7 +386,7 @@ export default function InputNilaiPage() {
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                     </svg>
-                    Simpan Nilai
+                    Simpan
                   </>
                 )}
               </button>

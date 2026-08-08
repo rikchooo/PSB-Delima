@@ -4,21 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { apiFetch } from "@/lib/api";
 import { getAuthToken } from "@/lib/auth";
-import {
-  HiStatusOnline,
-  HiCheck,
-  HiInformationCircle,
-  HiOutlineOfficeBuilding,
-  HiClipboard,
-  HiExclamation,
-  HiClock,
-  HiCloudUpload,
-  HiRefresh,
-  HiPaperAirplane,
-  HiCheckCircle,
-  HiPrinter,
-  HiExclamationCircle,
-} from "react-icons/hi";
+import { HiCheck, HiInformationCircle, HiOutlineOfficeBuilding, HiClipboard, HiExclamation, HiClock, HiCloudUpload, HiRefresh, HiPaperAirplane, HiCheckCircle, HiPrinter, HiExclamationCircle } from "react-icons/hi";
 
 export default function PembayaranPage() {
   // State untuk bukti pembayaran, status pembayaran, error, dan email user
@@ -97,12 +83,12 @@ export default function PembayaranPage() {
     }
   }, [router]);
 
-  // State rekening dan kode bayar (hardcoded untuk contoh)
+  // State rekening dan kode bayar
   const rekeningInfo = {
     bank: "BSI (Bank Syariah Indonesia)",
     nomor: "7258945578",
     nama: "Yayasan Delima Tanjung Rejo",
-    kodeBayar: "PSB-2026-001",
+    kodeBayar: "DTJR-2021",
   };
   const [biaya, setBiaya] = useState(0);
 
@@ -201,9 +187,9 @@ export default function PembayaranPage() {
 
       // Check if response is OK before using data
       if (!cloudinaryResponse.ok) {
-        const errorMsg = cloudinaryData?.error?.message || 
-                         cloudinaryData?.error || 
-                         `HTTP ${cloudinaryResponse.status}`;
+        const errorMsg = cloudinaryData?.error?.message ||
+          cloudinaryData?.error ||
+          `HTTP ${cloudinaryResponse.status}`;
         console.error("Cloudinary error response:", cloudinaryData);
         throw new Error(
           `Upload ke Cloudinary gagal: ${errorMsg}`,
@@ -271,7 +257,7 @@ export default function PembayaranPage() {
       setPaymentStatus("success");
       setTimeout(() => {
         alert(
-          "✅ Bukti pembayaran berhasil dikirim!\n\nSilakan tunggu konfirmasi dari panitia.",
+          "Bukti pembayaran berhasil dikirim!\n\nSilakan tunggu konfirmasi dari panitia.",
         );
       }, 500);
     } catch (error) {
@@ -279,7 +265,7 @@ export default function PembayaranPage() {
       setPaymentStatus("failed");
       setUploadError(
         error.message ||
-          "Terjadi kesalahan saat memproses pembayaran. Silakan coba lagi.",
+        "Terjadi kesalahan saat memproses pembayaran. Silakan coba lagi.",
       );
     } finally {
       setIsSubmitting(false);
@@ -511,11 +497,10 @@ export default function PembayaranPage() {
                   className={`px-8 py-4 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl 
                       transition-all duration-300 shadow-sm hover:shadow-md 
                       flex items-center justify-center space-x-2 min-w-[160px]
-                      ${
-                        isSubmitting || !buktiPembayaran
-                          ? "opacity-70 cursor-not-allowed"
-                          : "active:scale-[0.98] hover:scale-[1.02]"
-                      }`}
+                      ${isSubmitting || !buktiPembayaran
+                      ? "opacity-70 cursor-not-allowed"
+                      : "active:scale-[0.98] hover:scale-[1.02]"
+                    }`}
                 >
                   {isSubmitting ? (
                     <>

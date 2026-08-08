@@ -25,7 +25,7 @@ export default function LoginPage() {
     { key: "pengasuh", label: "Pengasuh", icon: UserCircle },
   ];
 
-  // Fungsi untuk mendapatkan teks yang ditampilkan pada dropdown berdasarkan role yang dipilih
+  // Fungsi teks pada dropdown berdasarkan role yang dipilih
   const getRoleDisplayText = () => {
     if (!role) return "Pilih Role Anda";
     const selectedRole = roles.find((r) => r.key === role);
@@ -57,7 +57,7 @@ export default function LoginPage() {
     }
 
     try {
-      const res = await apiFetch('/api/private/login', {
+      const res = await apiFetch('/api/user/private/login', {
         method: "POST",
         body: JSON.stringify({ email, password, role }),
       });

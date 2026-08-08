@@ -277,7 +277,7 @@ code {
   }
 
   @page {
-    size: A4;
+    size: 210mm 297mm;
     margin: 8mm;
   }
 }
@@ -339,8 +339,6 @@ body{
 
 .kwitansi-page {
   width: 170mm;
-  min-height: 110mm;
-  max-height: 110mm;
   background: white;
   margin: 0 auto;
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
@@ -348,13 +346,12 @@ body{
 }
 
 .kwitansi-inner {
-  padding: 5mm 10mm;
+  padding: 4mm 10mm 2mm 10mm;
   font-family: "Times New Roman", Times, serif;
   color: #000;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  height: 110mm;
   position: relative;
 }
 
@@ -363,36 +360,36 @@ body{
   justify-content: space-between;
   align-items: flex-start;
   border-bottom: 3px double #000;
-  padding-bottom: 4px;
-  margin-bottom: 6px;
+  padding-bottom: 2px;
+  margin-bottom: 3px;
   flex-shrink: 0;
 }
 
 .kwitansi-title {
   text-align: left;
-  line-height: 1.2;
+  line-height: 1.15;
 }
 
 .kwitansi-title h1 {
-  font-size: 16pt;
+  font-size: 13pt;
   font-weight: bold;
-  letter-spacing: 1px;
+  letter-spacing: 0.5px;
   margin: 0;
 }
 
 .kwitansi-title p {
-  font-size: 10pt;
+  font-size: 8.5pt;
   font-weight: bold;
   margin: 1px 0 0;
 }
 
 .kwitansi-title span {
-  font-size: 8pt;
+  font-size: 7pt;
   font-style: italic;
 }
 
 .kwitansi-no table {
-  font-size: 9pt;
+  font-size: 8pt;
   border-collapse: collapse;
 }
 
@@ -402,18 +399,18 @@ body{
 }
 
 .kwitansi-body {
-  margin-bottom: 6px;
+  margin-bottom: 3px;
   flex: 1 1 auto;
 }
 
 .kwitansi-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 10pt;
+  font-size: 9pt;
 }
 
 .kwitansi-table td {
-  padding: 3px 4px;
+  padding: 2px 3px;
   vertical-align: top;
   border-bottom: 0.5px solid #999;
 }
@@ -425,7 +422,7 @@ body{
 }
 
 .kwitansi-table .colon {
-  width: 12px;
+  width: 10px;
 }
 
 .kwitansi-table .value {
@@ -442,19 +439,19 @@ body{
   justify-content: space-between;
   align-items: center;
   border: 2px solid #000;
-  padding: 4px 12px;
-  margin-bottom: 6px;
+  padding: 2px 10px;
+  margin-bottom: 3px;
   font-weight: bold;
   flex-shrink: 0;
 }
 
 .kwitansi-amount .amount-label {
-  font-size: 11pt;
-  letter-spacing: 2px;
+  font-size: 9pt;
+  letter-spacing: 1px;
 }
 
 .kwitansi-amount .amount-value {
-  font-size: 15pt;
+  font-size: 12pt;
 }
 
 .kwitansi-footer {
@@ -462,13 +459,15 @@ body{
   justify-content: space-between;
   align-items: flex-end;
   flex-shrink: 0;
-  position: relative;
+  padding-top: 3px;
+  gap: 4px;
+  margin-top: auto;
 }
 
 .kwitansi-note {
-  font-size: 8pt;
-  max-width: 55%;
-  line-height: 1.3;
+  font-size: 7pt;
+  max-width: 45%;
+  line-height: 1.2;
 }
 
 .kwitansi-note p {
@@ -477,46 +476,12 @@ body{
 
 .kwitansi-sign {
   text-align: center;
-  font-size: 10pt;
-  width: 200px;
-}
-
-.kwitansi-sign .sign-space {
-  margin-top: 22px;
-}
-
-.kwitansi-sign .sign-name {
-  margin-top: 4px;
-}
-
-.kwitansi-stamp {
-  position: absolute;
-  bottom: 8mm;
-  right: 10mm;
-  width: 50mm;
-  height: 50mm;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  opacity: 0.85;
-  pointer-events: none;
-}
-
-.stamp-placeholder {
-  width: 45mm;
-  height: 45mm;
-  border: 3px solid #c0392b;
-  border-radius: 50%;
+  font-size: 9pt;
+  width: 180px;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  color: #c0392b;
-  font-weight: bold;
-  font-size: 10pt;
-  line-height: 1.2;
-  transform: rotate(-15deg);
+  gap: 1px;
+  page-break-inside: avoid;
 }
 
 @media screen and (max-width: 768px) {
@@ -536,18 +501,27 @@ body{
     background: white !important;
     padding: 0 !important;
     display: block !important;
+    page: kwitansi;
   }
 
   .kwitansi-page {
     width: 170mm !important;
-    min-height: 110mm !important;
-    max-height: 110mm !important;
+    min-height: 90mm !important;
+    max-height: 100mm !important;
     margin: 0 !important;
     box-shadow: none !important;
   }
 
-  @page {
+  .kwitansi-inner {
+    padding: 5mm 10mm 2mm 10mm !important;
+  }
+
+  .kwitansi-footer {
+    page-break-inside: avoid;
+  }
+
+  @page kwitansi {
     size: 170mm 110mm;
-    margin: 0;
+    margin: 8mm;
   }
 }

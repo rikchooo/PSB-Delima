@@ -5,27 +5,57 @@ import Image from "next/image";
 import { useEffect, useState } from "react";
 import { HiOutlineClipboard, HiOutlineCheckCircle, HiOutlineBell, HiOutlineCurrencyDollar, HiOutlineCalendar, HiOutlineUser, HiOutlineCloudUpload, HiOutlineCheck, HiOutlineArrowNarrowRight, HiOutlineClock, HiOutlineStar, HiOutlineDocumentText, HiOutlineHome, HiOutlineIdentification, HiOutlineAcademicCap, HiOutlineCamera, HiOutlineHeart } from "react-icons/hi";
 import { FaInstagram, FaFacebook, FaYoutube, FaTiktok } from "react-icons/fa";
+import { apiFetch } from "@/lib/api";
 
-const REGISTRATION_SCHEDULE_KEY = "registration_schedule";
-
-const DEFAULT_REGISTRATION_SCHEDULE = {
+const DEFAULT_SCHEDULE = {
   wave1: "1 Jan - 31 Mar 2026",
   wave2: "1 Apr - 30 Jun 2026",
   wave3: "1 Jul - 30 Sep 2026",
 };
 
-
 export default function LandingPage() {
-  const [registrationSchedule, setRegistrationSchedule] = useState(DEFAULT_REGISTRATION_SCHEDULE);
+  const [registrationSchedule, setRegistrationSchedule] = useState(DEFAULT_SCHEDULE);
+  const [activeYear, setActiveYear] = useState(null);
 
   useEffect(() => {
-    const loadSchedule = () => {
-      const savedSchedule = localStorage.getItem(REGISTRATION_SCHEDULE_KEY);
+    const loadSettings = async () => {
+      try {
+        const res = await apiFetch('/api/settings');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.data?.active_year) {
+            setActiveYear(data.data.active_year);
+          }
+        }
+      } catch (error) {
+        console.error("Gagal memuat tahun aktif dari API:", error);
+      }
+    };
+
+    loadSettings();
+  }, []);
+
+  useEffect(() => {
+    const loadSchedule = async () => {
+      try {
+        const res = await apiFetch('/api/settings/schedule');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.data) {
+            setRegistrationSchedule(data.data);
+            return;
+          }
+        }
+      } catch (error) {
+        console.error("Gagal memuat jadwal pendaftaran dari API:", error);
+      }
+
+      const savedSchedule = localStorage.getItem("registration_schedule");
       if (!savedSchedule) return;
 
       try {
         setRegistrationSchedule({
-          ...DEFAULT_REGISTRATION_SCHEDULE,
+          ...DEFAULT_SCHEDULE,
           ...JSON.parse(savedSchedule),
         });
       } catch (error) {
@@ -63,7 +93,7 @@ export default function LandingPage() {
 
           <p className="text-3xl md:text-4xl font-semibold text-gray-800 mb-10">
             Pendaftaran Santri Baru <br className="hidden sm:block" />
-            Tahun Ajaran 2026 / 2027
+            Tahun Ajaran {activeYear ? `${activeYear} / ${parseInt(activeYear) + 1}` : '2026 / 2027'}
           </p>
 
           <div className="max-w-3xl mx-auto mb-12">

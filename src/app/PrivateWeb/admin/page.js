@@ -5,7 +5,7 @@ import { apiFetch } from "@/lib/api";
 import { getAuthToken, getPrivateSession } from "@/lib/auth";
 import { useRouter } from "next/navigation";
 import PrivateHeader from "@/components/PrivateHeader";
-import { HiUsers, HiClock, HiCheckCircle, HiXCircle, HiSearch, HiPrinter, HiChevronDown, HiTrendingUp, HiExclamation, HiEye, HiCheck, HiX, HiSave, HiCog } from "react-icons/hi";
+import { HiUsers, HiClock, HiCheckCircle, HiXCircle, HiPrinter, HiChevronDown, HiTrendingUp, HiExclamation, HiEye, HiCheck, HiX, HiSave, HiCog, HiSwitchHorizontal } from "react-icons/hi";
 
 const REGISTRATION_SCHEDULE_KEY = "registration_schedule";
 
@@ -21,7 +21,6 @@ export default function AdminDashboard() {
   const [santri, setSantri] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
@@ -31,6 +30,29 @@ export default function AdminDashboard() {
   const [updateError, setUpdateError] = useState(null);
   const dropdownRef = useRef(null);
   const router = useRouter();
+  const [activeYear, setActiveYear] = useState("");
+  const [settings, setSettings] = useState({});
+  const [isYearDropdownOpen, setIsYearDropdownOpen] = useState(false);
+  const yearDropdownRef = useRef(null);
+  const activeYearRef = useRef(activeYear);
+  const [pendaftaranAktif, setPendaftaranAktif] = useState(true);
+
+  useEffect(() => {
+    activeYearRef.current = activeYear;
+  }, [activeYear]);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (yearDropdownRef.current && !yearDropdownRef.current.contains(event.target)) {
+        setIsYearDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   useEffect(() => {
     // Fungsi untuk memeriksa session dan mengambil data santri
@@ -55,6 +77,34 @@ export default function AdminDashboard() {
         }
 
         setUser(parsed);
+
+        // Fetch settings for active year
+        let activeYearValue = "";
+        try {
+          const settingsRes = await apiFetch('/api/settings');
+          if (settingsRes.ok) {
+            const settingsData = await settingsRes.json();
+            setSettings(settingsData.data || {});
+            activeYearValue = settingsData.data?.active_year || new Date().getFullYear().toString();
+            setActiveYear(activeYearValue);
+            activeYearRef.current = activeYearValue;
+          }
+        } catch (settingsErr) {
+          console.error('Failed to fetch settings:', settingsErr);
+          activeYearValue = new Date().getFullYear().toString();
+          activeYearRef.current = activeYearValue;
+        }
+
+        // Fetch pendaftaran aktif status
+        try {
+          const pendaftaranRes = await apiFetch('/api/settings/pendaftaran_aktif');
+          if (pendaftaranRes.ok) {
+            const pendaftaranData = await pendaftaranRes.json();
+            setPendaftaranAktif(!!pendaftaranData.pendaftaran_aktif);
+          }
+        } catch (pendaftaranErr) {
+          console.error('Failed to fetch pendaftaran aktif:', pendaftaranErr);
+        }
 
         console.log('Fetching from API...');
         
@@ -102,6 +152,7 @@ export default function AdminDashboard() {
           date: item.created_at ? new Date(item.created_at).toISOString().split('T')[0] : '-',
           createdAt: item.created_at ? new Date(item.created_at) : new Date(),
           address: item.alamat_santri || '-',
+          tahun_pendaftaran: item.tahun_pendaftaran,
         }));
 
         mappedSantri.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
@@ -236,16 +287,15 @@ export default function AdminDashboard() {
   };
 
   // Filter dan cari data santri berdasarkan search term dan status filter
-  const filteredSantri = santri.filter((item) => {
-    const matchesSearch =
-      item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.phone.includes(searchTerm);
+  const yearFilteredSantri = activeYear
+    ? santri.filter((item) => String(item.tahun_pendaftaran) === activeYear)
+    : santri;
 
+  const filteredSantri = yearFilteredSantri.filter((item) => {
     const matchesStatus =
       statusFilter === "all" || item.status === statusFilter;
 
-    return matchesSearch && matchesStatus;
+    return matchesStatus;
   });
 
   // Page item logic
@@ -257,12 +307,12 @@ export default function AdminDashboard() {
   );
 
   // Statistik 
-  const totalSantri = santri.length;
-  const pendingSantri = santri.filter((s) => s.status === "pending").length;
-  const acceptedSantri = santri.filter(
-    (s) => s.status === "accepted",
+  const totalSantri = yearFilteredSantri.length;
+  const pendingSantri = yearFilteredSantri.filter((s) => s.status === "pending").length;
+  const acceptedSantri = yearFilteredSantri.filter(
+    (s) => s.status === "accepted" || s.status === "completed",
   ).length;
-  const rejectedSantri = santri.filter(
+  const rejectedSantri = yearFilteredSantri.filter(
     (s) => s.status === "rejected",
   ).length;
 
@@ -293,9 +343,14 @@ export default function AdminDashboard() {
             </button>
           </div>
         </div>
-      ) : (
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <section aria-labelledby="stats-heading" className="mb-8">
+) : (
+       <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+         <div className="mb-4 flex items-center gap-3">
+           <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${pendaftaranAktif ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+             {pendaftaranAktif ? 'Pendaftaran Aktif' : 'Pendaftaran Belum Dibuka'}
+           </span>
+         </div>
+         <section aria-labelledby="stats-heading" className="mb-8">
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <div className="bg-white rounded-xl shadow-md p-6 border-l-4 border-blue-500 hover:shadow-lg transition-shadow">
@@ -372,7 +427,7 @@ export default function AdminDashboard() {
         </section>
         
         <section aria-labelledby="table-heading" className="mb-8">
-          <div className="bg-white rounded-xl shadow-md overflow-hidden">
+          <div className="bg-white rounded-xl shadow-md">
             {/* Header Section */}
             <div className="px-4 sm:px-6 py-4">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
@@ -383,120 +438,157 @@ export default function AdminDashboard() {
                   Daftar Calon Santri
                 </h2>
 
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 w-full sm:w-auto">
-                  <div className="relative flex-1 sm:flex-initial min-w-[180px]">
-                    <HiSearch className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                    <input
-                      type="text"
-                      placeholder="Cari nama atau no HP..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="w-full pl-10 pr-3 py-1.5 sm:py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none text-xs sm:text-sm"
-                    />
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3 w-full sm:w-auto flex-wrap">
+                  <div className="flex flex-wrap gap-2">
+                    {/* Dropdown Tahun */}
+                    <div
+                      className="relative w-full sm:w-auto min-w-[160px]"
+                      ref={yearDropdownRef}
+                    >
+                      <button
+                        onClick={() => setIsYearDropdownOpen(!isYearDropdownOpen)}
+                        className="w-full sm:w-[160px] px-3 py-1.5 sm:px-4 sm:py-2 border border-gray-300 rounded-lg bg-white flex items-center justify-between hover:border-green-400 focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all text-xs sm:text-sm min-h-[34px] sm:min-h-[42px]"
+                      >
+                        <span className="truncate">
+                          {activeYear ? `Tahun ${activeYear}` : "Semua Tahun"}
+                        </span>
+
+                        <HiChevronDown
+                          className={`w-4 h-4 ml-2 transition-transform duration-200 ${
+                            isYearDropdownOpen ? "rotate-180" : ""
+                          }`}
+                        />
+                      </button>
+
+                      {isYearDropdownOpen && (
+                        <div className="absolute z-20 mt-1 right-0 w-full bg-white border border-gray-200 rounded-lg shadow-lg py-1 max-h-60 overflow-y-auto">
+                          {[
+                            { value: "", label: "Semua Tahun" },
+                            {
+                              value: String(new Date().getFullYear()),
+                              label: `${new Date().getFullYear()}`,
+                            },
+                            {
+                              value: String(new Date().getFullYear() - 1),
+                              label: String(new Date().getFullYear() - 1),
+                            },
+                            {
+                              value: String(new Date().getFullYear() - 2),
+                              label: String(new Date().getFullYear() - 2),
+                            },
+                          ].map((option) => (
+                            <button
+                              key={option.value || "all"}
+                              onClick={() => {
+                                setActiveYear(option.value);
+                                setIsYearDropdownOpen(false);
+                              }}
+                              className={`w-full text-left px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm transition ${
+                                activeYear === option.value
+                                  ? "bg-green-50 text-green-700 font-medium"
+                                  : "text-gray-700 hover:bg-gray-50"
+                              }`}
+                            >
+                              {option.label}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Dropdown Status */}
+                    <div
+                      className="relative w-full sm:w-auto min-w-[160px]"
+                      ref={dropdownRef}
+                    >
+                      <button
+                        onClick={() => setIsStatusDropdownOpen(!isStatusDropdownOpen)}
+                        className="w-full sm:w-[160px] px-3 py-1.5 sm:px-4 sm:py-2 border border-gray-300 rounded-lg bg-white flex items-center justify-between hover:border-green-400 focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all text-xs sm:text-sm min-h-[34px] sm:min-h-[42px]"
+                      >
+                        <span className="truncate">
+                          {statusFilter === "all" && "Semua Status"}
+                          {statusFilter === "pending" && "Menunggu"}
+                          {statusFilter === "accepted" && "Diterima"}
+                          {statusFilter === "completed" && "Selesai"}
+                          {statusFilter === "rejected" && "Ditolak"}
+                        </span>
+
+                        <HiChevronDown
+                          className={`w-4 h-4 ml-2 transition-transform duration-200 ${
+                            isStatusDropdownOpen ? "rotate-180" : ""
+                          }`}
+                        />
+                      </button>
+
+                      {isStatusDropdownOpen && (
+                        <div className="absolute z-20 mt-1 right-0 w-full bg-white border border-gray-200 rounded-lg shadow-lg py-1 max-h-60 overflow-y-auto">
+                          {[
+                            { value: "all", label: "Semua Status" },
+                            { value: "pending", label: "Menunggu" },
+                            { value: "accepted", label: "Diterima" },
+                            { value: "completed", label: "Selesai" },
+                            { value: "rejected", label: "Ditolak" },
+                          ].map((option) => (
+                            <button
+                              key={option.value}
+                              onClick={() => {
+                                setStatusFilter(option.value);
+                                setIsStatusDropdownOpen(false);
+                              }}
+                              className={`w-full text-left px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm transition ${
+                                statusFilter === option.value
+                                  ? "bg-green-50 text-green-700 font-medium"
+                                  : "text-gray-700 hover:bg-gray-50"
+                              }`}
+                            >
+                              {option.label}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
 
-                  <div
-                    className="relative w-full sm:w-auto min-w-[160px]"
-                    ref={dropdownRef}
-                  >
                     <button
-                      onClick={() =>
-                        setIsStatusDropdownOpen(!isStatusDropdownOpen)
-                      }
-                      className="w-full sm:w-auto px-3 py-1.5 sm:px-4 sm:py-2 border border-gray-300 rounded-lg bg-white flex items-center justify-between hover:border-green-400 focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all text-xs sm:text-sm min-h-[34px] sm:min-h-[42px]"
-                    >
-                      <span className="truncate">
-                        {statusFilter === "all" && "Semua Status"}
-                        {statusFilter === "pending" && "Menunggu"}
-                        {statusFilter === "accepted" && "Diterima"}
-                        {statusFilter === "rejected" && "Ditolak"}
-                      </span>
-                      <HiChevronDown className={`w-4 h-4 ml-1 sm:ml-2 transition-transform duration-200 ${
-                          isStatusDropdownOpen ? "rotate-180" : ""
-                        }`} />
-                    </button>
-
-                    {isStatusDropdownOpen && (
-                      <div className="absolute z-20 mt-1 right-0 bg-white border border-gray-200 rounded-lg shadow-lg min-w-[180px] py-1 max-h-60 overflow-y-auto">
-                        {[
-                          { value: "all", label: "Semua Status" },
-                          { value: "pending", label: "Menunggu Verifikasi" },
-                          { value: "accepted", label: "Diterima" },
-                          { value: "rejected", label: "Ditolak" },
-                        ].map((option) => (
-                          <button
-                            key={option.value}
-                            onClick={() => {
-                              setStatusFilter(option.value);
-                              setIsStatusDropdownOpen(false);
-                            }}
-                            className={`w-full text-left px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm transition ${
-                              statusFilter === option.value
-                                ? "bg-green-50 text-green-700 font-medium"
-                                : "text-gray-700 hover:bg-gray-50"
-                            }`}
-                          >
-                            {option.label}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                   <div className="hidden sm:flex items-center gap-2 ml-auto">
-                     <button
-                       onClick={() => router.push('/PrivateWeb/admin/setting')}
-                       className="flex items-center justify-center px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium min-w-[120px]"
-                       title="Pengaturan"
-                     >
-                       <HiCog className="w-4 h-4 mr-2" />
-                       Setting
-                     </button>
-
-                     <button
-                       onClick={() => setIsScheduleModalOpen(true)}
-                      className="flex items-center justify-center px-4 py-2 bg-white text-green-700 border border-green-300 rounded-lg hover:bg-green-50 transition-colors text-sm font-medium min-w-[120px]"
-                      title="Ubah Tanggal Pendaftaran"
-                    >
-                      Ubah Tanggal
-                    </button>
-
-                    <button
-                      onClick={() => router.push('/PrivateWeb/admin/laporan')}
-                      className="flex items-center justify-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium min-w-[120px]"
+                      className="hidden sm:flex items-center justify-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium min-w-[120px]"
+                      onClick={() => {
+                        const params = activeYear ? `?year=${activeYear}` : "";
+                        router.push(`/PrivateWeb/admin/laporan${params}`);
+                      }}
                       title="Cetak Laporan Santri Diterima"
                     >
                       <HiPrinter className="w-4 h-4 mr-2" />
                       Cetak Laporan
                     </button>
+
+                    <button
+                      className="hidden sm:flex items-center justify-center p-2 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium"
+                      onClick={() => router.push('/PrivateWeb/admin/setting')}
+                      title="Pengaturan"
+                    >
+                      <HiCog className="w-5 h-5" />
+                    </button>
                   </div>
-                </div>
 
-                <div className="sm:hidden mt-3 grid grid-cols-1 gap-2">
+                <div className="sm:hidden grid grid-cols-1 gap-3">
                   <button
-                    onClick={() => router.push('/PrivateWeb/admin/setting')}
-                    className="w-full px-4 py-2.5 bg-white text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium flex items-center justify-center"
-                    title="Pengaturan"
-                  >
-                    <HiCog className="w-4 h-4 mr-2" />
-                    Setting
-                  </button>
-
-                  <button
-                    onClick={() => setIsScheduleModalOpen(true)}
-                    className="w-full px-4 py-2.5 bg-white text-green-700 rounded-lg hover:bg-green-50 transition-colors font-medium flex items-center justify-center"
-                    title="Ubah Tanggal Pendaftaran"
-                  > 
-                    Ubah Tanggal
-                  </button>
-
-                  <button
-                    onClick={() => router.push('/PrivateWeb/admin/laporan')}
+                    onClick={() => {
+                      const params = activeYear ? `?year=${activeYear}` : "";
+                      router.push(`/PrivateWeb/admin/laporan${params}`);
+                    }}
                     className="w-full px-4 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium flex items-center justify-center"
                     title="Cetak Laporan Santri Diterima"
                   >
                     <HiPrinter className="w-4 h-4 mr-2" />
                     Cetak Laporan
+                  </button>
+
+                  <button
+                    onClick={() => router.push('/PrivateWeb/admin/setting')}
+                    className="w-full px-4 py-2.5 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium flex items-center justify-center"
+                    title="Pengaturan"
+                  >
+                    <HiCog className="w-5 h-5" />
                   </button>
                 </div>
               </div>
@@ -535,16 +627,18 @@ export default function AdminDashboard() {
                         <td className="px-2 py-2 sm:px-3 sm:py-2.5 whitespace-nowrap hidden lg:table-cell text-gray-800">
                           {santri.parentName}
                         </td>
-                        <td className="px-2 py-2 sm:px-3 sm:py-2.5 whitespace-nowrap">
-                          <span className={`px-1.5 py-0.5 sm:px-2 sm:py-1 inline-flex text-[10px] sm:text-xs font-medium rounded-full ${
-                            santri.status === "pending" ? "bg-yellow-100 text-yellow-800" :
-                            santri.status === "accepted" ? "bg-green-100 text-green-800" :
-                            "bg-red-100 text-red-800"
-                          }`}>
-                            {santri.status === "pending" ? "Menunggu" :
-                            santri.status === "accepted" ? "Diterima" : "Ditolak"}
-                          </span>
-                        </td>
+                          <td className="px-2 py-2 sm:px-3 sm:py-2.5 whitespace-nowrap">
+                            <span className={`px-1.5 py-0.5 sm:px-2 sm:py-1 inline-flex text-[10px] sm:text-xs font-medium rounded-full ${
+                              santri.status === "pending" ? "bg-yellow-100 text-yellow-800" :
+                              santri.status === "accepted" ? "bg-green-100 text-green-800" :
+                              santri.status === "completed" ? "bg-blue-100 text-blue-800" :
+                              "bg-red-100 text-red-800"
+                            }`}>
+                              {santri.status === "pending" ? "Menunggu" :
+                              santri.status === "accepted" ? "Diterima" :
+                              santri.status === "completed" ? "Selesai" : "Ditolak"}
+                            </span>
+                          </td>
                         <td className="px-2 py-2 sm:px-3 sm:py-2.5 whitespace-nowrap">
                           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-1.5">
                             {/* Tombol Lihat Detail */}
@@ -658,7 +752,7 @@ export default function AdminDashboard() {
               Aktivitas Terbaru
             </h2>
             <div className="space-y-4">
-              {santri.slice(0, 5).map((item) => (
+              {yearFilteredSantri.slice(0, 5).map((item) => (
                 <div
                   key={item.id}
                   className="flex items-start space-x-3 border-b pb-3 last:border-0 hover:bg-gray-50 rounded-lg p-2 -mx-2 cursor-pointer transition-colors"
@@ -666,16 +760,19 @@ export default function AdminDashboard() {
                 >
                   <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
                     item.status === 'pending' ? 'bg-yellow-100' : 
-                    item.status === 'accepted' ? 'bg-green-100' : 'bg-red-100'
+                    item.status === 'accepted' ? 'bg-green-100' :
+                    item.status === 'completed' ? 'bg-blue-100' : 'bg-red-100'
                   }`}>
                     {item.status === 'accepted' ? <HiCheckCircle className="w-5 h-5 text-green-600" /> : 
-                          item.status === 'rejected' ? <HiXCircle className="w-5 h-5 text-red-600" /> : 
+                          item.status === 'rejected' ? <HiXCircle className="w-5 h-5 text-red-600" /> :
+                          item.status === 'completed' ? <HiCheckCircle className="w-5 h-5 text-blue-600" /> :
                           <HiClock className="w-5 h-5 text-yellow-600" />}
                   </div>
                   <div className="flex-1">
                     <p className="font-medium text-gray-900">
                       {item.status === 'accepted' ? 'Pendaftaran Diterima' : 
-                      item.status === 'rejected' ? 'Pendaftaran Ditolak' : 'Pendaftaran Baru'}
+                      item.status === 'rejected' ? 'Pendaftaran Ditolak' :
+                      item.status === 'completed' ? 'Pendaftaran Selesai' : 'Pendaftaran Baru'}
                     </p>
                     <p className="text-sm text-gray-600">
                       {item.name} mendaftar - {item.phone} santri baru

@@ -1,22 +1,11 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { apiFetch } from "@/lib/api";
 import { getAuthToken, getPrivateSession } from "@/lib/auth";
 import { useRouter } from "next/navigation";
 import PrivateHeader from "@/components/PrivateHeader";
-import {
-  HiUserGroup,
-  HiCheckCircle,
-  HiCurrencyDollar,
-  HiInbox,
-  HiChartBar,
-  HiClipboard,
-  HiEye,
-  HiX,
-  HiClock,
-  HiCheck,
-} from "react-icons/hi";
+import { HiUserGroup, HiCheckCircle, HiCurrencyDollar, HiInbox, HiChartBar, HiClipboard, HiEye, HiX, HiClock, HiCheck } from "react-icons/hi";
 import "@/styles/globals.css";
 
 export default function PengasuhDashboard() {
@@ -29,7 +18,14 @@ export default function PengasuhDashboard() {
   const [error, setError] = useState(null);
   const [selectedSantri, setSelectedSantri] = useState(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [biaya, setBiaya] = useState(0);
+  const [activeYear, setActiveYear] = useState("");
   const router = useRouter();
+  const activeYearRef = useRef(activeYear);
+
+  useEffect(() => {
+    activeYearRef.current = activeYear;
+  }, [activeYear]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -45,9 +41,20 @@ export default function PengasuhDashboard() {
           return;
         }
 
-        const response = await apiFetch('/api/pengasuh/santri');
+        const [response, settingsResponse] = await Promise.all([
+          apiFetch('/api/pengasuh/santri'),
+          apiFetch('/api/settings')
+        ]);
+
         if (!response.ok) throw new Error("Failed to fetch data");
         const result = await response.json();
+
+        if (settingsResponse.ok) {
+          const settingsJson = await settingsResponse.json();
+          if (settingsJson.data?.active_year) {
+            setActiveYear(settingsJson.data.active_year);
+          }
+        }
 
         const mappedData = (result.data || []).map((item) => {
           const levelAlquran = item.level_alquran || "-";
@@ -82,14 +89,19 @@ export default function PengasuhDashboard() {
             examDate: item.nilai_created_at || "-",
             recommendedClass: "-",
             createdAt: item.created_at ? new Date(item.created_at) : new Date(),
+            tahun_pendaftaran: item.tahun_pendaftaran,
           };
         });
 
         mappedData.sort(
-          (a, b) => new Date(a.createdAt) - new Date(b.createdAt),
+          (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
         );
 
-        setSantri(mappedData);
+        const yearFilteredData = activeYearRef.current
+          ? mappedData.filter(item => String(item.tahun_pendaftaran) === activeYearRef.current)
+          : mappedData;
+
+        setSantri(yearFilteredData);
       } catch (err) {
         console.error("Error fetching data:", err);
         setError(err.message);
@@ -100,6 +112,27 @@ export default function PengasuhDashboard() {
 
     fetchData();
   }, [router]);
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const settingsRes = await apiFetch('/api/settings');
+        if (settingsRes.ok) {
+          const settingsData = await settingsRes.json();
+          const year = settingsData.data?.active_year || new Date().getFullYear().toString();
+          const biayaRes = await apiFetch(`/api/settings/biaya/${year}`);
+          if (biayaRes.ok) {
+            const biayaData = await biayaRes.json();
+            setBiaya(biayaData.biaya || 0);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch settings/biaya', err);
+      }
+    };
+
+    fetchSettings();
+  }, []);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -137,7 +170,7 @@ export default function PengasuhDashboard() {
       })
     : [];
 
-  const itemsPerPage = 6;
+  const itemsPerPage = 10;
   const totalPages = Math.ceil(filteredSantri.length / itemsPerPage);
   const paginatedSantri = filteredSantri.slice(
     (currentPage - 1) * itemsPerPage,
@@ -149,12 +182,30 @@ export default function PengasuhDashboard() {
     ? santri.filter((s) => s.status === "accepted" || s.status === "completed")
         .length
     : 0;
-  const sudahBayar = Array.isArray(santri)
-    ? santri.filter((s) => s.paymentStatus === "lunas" || s.paymentStatus === "confirmed" || s.paymentStatus === "success").length
-    : 0;
   const sudahUji = Array.isArray(santri)
     ? santri.filter((s) => s.quranScore > 0 || s.kitabScore > 0).length
     : 0;
+
+  const paymentStats = useMemo(() => {
+    if (!Array.isArray(santri)) return { sudahBayar: 0, menungguKonfirmasi: 0, totalNominalTerbayar: 0 };
+    const verified = ["lunas", "confirmed", "success"];
+    let sudahBayar = 0;
+    let menungguKonfirmasi = 0;
+    let totalNominalTerbayar = 0;
+    for (const s of santri) {
+      if (verified.includes(s.paymentStatus)) {
+        sudahBayar++;
+        totalNominalTerbayar += s.paymentAmount || 0;
+      } else if (s.paymentStatus && s.paymentStatus !== "belum") {
+        menungguKonfirmasi++;
+      }
+    }
+    return { sudahBayar, menungguKonfirmasi, totalNominalTerbayar };
+  }, [santri]);
+
+  const totalNominalTerbayar = paymentStats.totalNominalTerbayar;
+  const sudahBayar = paymentStats.sudahBayar;
+  const menungguKonfirmasi = paymentStats.menungguKonfirmasi;
 
   const getActivityStatus = (s) => {
     const hasExam = s.quranScore > 0 || s.kitabScore > 0;
@@ -186,9 +237,23 @@ export default function PengasuhDashboard() {
     }
   };
 
-  const openDetail = (s) => {
+  const [biayaDetail, setBiayaDetail] = useState(0);
+
+  const openDetail = async (s) => {
     setSelectedSantri(s);
     setIsDetailOpen(true);
+    setBiayaDetail(0);
+
+    try {
+      const year = activeYear || new Date(s.acceptedDate || s.createdAt).getFullYear().toString();
+      const res = await apiFetch(`/api/settings/biaya/${year}`);
+      if (res.ok) {
+        const data = await res.json();
+        setBiayaDetail(data.biaya || 0);
+      }
+    } catch (err) {
+      console.error('Failed to fetch detail biaya', err);
+    }
   };
 
   if (error) {
@@ -233,6 +298,13 @@ export default function PengasuhDashboard() {
       <PrivateHeader />
 
       <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {activeYear && (
+          <div className="mb-6 inline-flex items-center px-4 py-2 bg-green-50 border border-green-200 rounded-lg">
+            <span className="text-sm font-medium text-green-800">
+              Tahun Pendaftaran Aktif: <span className="font-bold">{activeYear}</span>
+            </span>
+          </div>
+        )}
         <section aria-labelledby="stats-heading" className="mb-8">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-blue-500 hover:shadow-xl transition-shadow">
@@ -256,12 +328,14 @@ export default function PengasuhDashboard() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-gray-600 text-sm font-medium">
-                    Pembayaran Sudah Dikonfirmasi
+                    Pembayaran
                   </p>
                   <p className="text-3xl font-bold text-green-600 mt-2">
                     {sudahBayar}
                   </p>
-                  <p className="text-sm text-gray-600 mt-1">Sudah bayar</p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Sudah dikonfirmasi {menungguKonfirmasi > 0 ? ` · ${menungguKonfirmasi} menunggu` : ''}
+                  </p>
                 </div>
                 <div className="bg-green-100 p-3 rounded-full">
                   <HiCurrencyDollar className="w-8 h-8 text-green-600" />
@@ -372,6 +446,61 @@ export default function PengasuhDashboard() {
                 </table>
               </div>
             )}
+          </div>
+
+          {/* Page item */}
+          <div className="px-4 sm:px-6 py-3 sm:py-4 border-t border-gray-200">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
+              <div className="text-[11px] sm:text-sm text-gray-600 text-center sm:text-left">
+                Menampilkan{" "}
+                <span className="font-medium">
+                  {(currentPage - 1) * itemsPerPage + 1}
+                </span>{" "}
+                -{" "}
+                <span className="font-medium">
+                  {Math.min(
+                    currentPage * itemsPerPage,
+                    filteredSantri.length,
+                  )}
+                </span>{" "}
+                dari{" "}
+                <span className="font-medium">{filteredSantri.length}</span>
+              </div>
+              <div className="flex flex-wrap justify-center sm:justify-start gap-1.5">
+                <button
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="px-2 py-1 text-[11px] sm:text-xs border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 min-w-[65px] sm:min-w-[80px]"
+                >
+                  <span className="hidden xs:inline">Sebelumnya</span>
+                  <span className="xs:hidden">❮</span>
+                </button>
+                <div className="flex flex-wrap gap-1">
+                  {[...Array(totalPages)].map((_, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setCurrentPage(i + 1)}
+                      className={`w-7 h-7 sm:w-8 sm:h-8 rounded flex items-center justify-center text-[11px] sm:text-sm font-medium ${currentPage === i + 1
+                        ? "bg-green-600 text-white"
+                        : "bg-white text-gray-700 hover:bg-gray-100 border border-gray-200"
+                        }`}
+                    >
+                      {i + 1}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  onClick={() =>
+                    setCurrentPage((p) => Math.min(totalPages, p + 1))
+                  }
+                  disabled={currentPage === totalPages}
+                  className="px-2 py-1 text-[11px] sm:text-xs border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 min-w-[65px] sm:min-w-[80px]"
+                >
+                  <span className="hidden xs:inline">Berikutnya</span>
+                  <span className="xs:hidden">❯</span>
+                </button>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -489,7 +618,7 @@ export default function PengasuhDashboard() {
                 <h4 className="font-semibold text-gray-900 mb-2">Data Pembayaran</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
                   <div><span className="text-gray-500">Status:</span> <span className="font-medium capitalize">{selectedSantri.paymentStatus}</span></div>
-                  <div><span className="text-gray-500">Nominal:</span> <span className="font-medium">Rp {selectedSantri.paymentAmount ? selectedSantri.paymentAmount.toLocaleString("id-ID") : '-'}</span></div>
+                   <div><span className="text-gray-500">Nominal:</span> <span className="font-medium">Rp {biayaDetail ? biayaDetail.toLocaleString("id-ID") : '-'}</span></div>
                   <div><span className="text-gray-500">Metode:</span> <span className="font-medium">{selectedSantri.paymentMethod}</span></div>
                   <div><span className="text-gray-500">Tanggal:</span> <span className="font-medium">{selectedSantri.paymentDate ? new Date(selectedSantri.paymentDate).toLocaleDateString("id-ID") : '-'}</span></div>
                   {selectedSantri.paymentProof && selectedSantri.paymentProof !== "-" && (

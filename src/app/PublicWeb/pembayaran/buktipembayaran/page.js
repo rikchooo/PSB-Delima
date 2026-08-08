@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { apiFetch } from "@/lib/api";
-import { getAuthToken } from "@/lib/auth";
+import { getAuthToken, getPrivateSession } from "@/lib/auth";
 import { useRouter, useSearchParams } from "next/navigation";
+import Image from "next/image";
 import "@/styles/globals.css";
 
 export default function LaporanPage() {
@@ -11,6 +12,7 @@ export default function LaporanPage() {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
   const [biaya, setBiaya] = useState(0);
+  const [settings, setSettings] = useState({});
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -29,29 +31,42 @@ export default function LaporanPage() {
       }
 
       try {
-        const [paymentRes, settingsRes] = await Promise.all([
-          apiFetch(`/api/pembayaran/pendaftaran/${id}`),
-          apiFetch('/api/settings'),
-        ]);
-
+        const paymentRes = await apiFetch(`/api/pembayaran/pendaftaran/${id}`);
         if (!paymentRes.ok) {
-          throw new Error("Gagal mengambil data pembayaran");
+          const errText = await paymentRes.text().catch(() => 'Gagal mengambil data pembayaran');
+          throw new Error(errText || "Gagal mengambil data pembayaran");
         }
         const paymentResult = await paymentRes.json();
-        setPembayaran(paymentResult.data);
+        const paymentData = paymentResult.data || paymentResult;
+        setPembayaran(paymentData);
 
-        if (settingsRes.ok) {
-          const settingsData = await settingsRes.json();
-          const activeYear = settingsData.data?.active_year || new Date().getFullYear();
-          const biayaRes = await apiFetch(`/api/settings/biaya/${activeYear}`);
-          if (biayaRes.ok) {
-            const biayaData = await biayaRes.json();
-            setBiaya(biayaData.biaya || 0);
+        let biayaValue = 0;
+        try {
+          const settingsRes = await apiFetch('/api/settings');
+          if (settingsRes.ok) {
+            const settingsData = await settingsRes.json();
+            setSettings(settingsData.data || {});
+            const activeYear = settingsData.data?.active_year || new Date().getFullYear();
+            const biayaRes = await apiFetch(`/api/settings/biaya/${activeYear}`);
+            if (biayaRes.ok) {
+              const biayaData = await biayaRes.json();
+              biayaValue = biayaData.biaya || 0;
+            }
           }
+        } catch (settingsErr) {
+          console.warn('Settings not available, using payment nominal fallback', settingsErr);
         }
+
+        if (!biayaValue && paymentData.nominal) {
+          const parsed = parseInt(paymentData.nominal, 10);
+          if (!isNaN(parsed)) biayaValue = parsed;
+        }
+
+        setBiaya(biayaValue);
         setError(null);
       } catch (err) {
-        setError(err.message);
+        console.error('Fetch payment error:', err);
+        setError(err.message || 'Terjadi kesalahan saat memuat data pembayaran');
       } finally {
         setLoading(false);
       }
@@ -158,7 +173,8 @@ export default function LaporanPage() {
     return (penggalan(nominal) + " Rupiah").replace(/\s+/g, " ").trim();
   })();
 
-  const noRegistrasi = pembayaran.no_registrasi || `PSB-${String(pembayaran.id_pendaftaran || searchParams.get("id") || "-").padStart(4, '0')}`;
+  const noKwitansi = `PSB-${String(pembayaran.id ?? searchParams.get("id") ?? "-").padStart(4, '0')}`;
+  const noRegistrasi = `PSB-${String(pembayaran.id_pendaftaran ?? searchParams.get("id") ?? "-").padStart(4, '0')}`;
 
   return (
     <div className="kwitansi-wrapper">
@@ -196,7 +212,7 @@ export default function LaporanPage() {
                 <tbody>
                   <tr>
                     <td>No. Kwitansi</td>
-                    <td>: {noRegistrasi}</td>
+                    <td>: {noKwitansi}</td>
                   </tr>
                   <tr>
                     <td>No. Registrasi</td>
@@ -217,7 +233,7 @@ export default function LaporanPage() {
                 <tr>
                   <td className="label">Telah Terima Dari</td>
                   <td className="colon">:</td>
-                  <td className="value">{pembayaran.nama_lengkap || "-"}</td>
+                  <td className="value">{pembayaran.nama_lengkap || pembayaran.nama_santri || "-"}</td>
                 </tr>
                 <tr>
                   <td className="label">Email</td>
@@ -261,17 +277,13 @@ export default function LaporanPage() {
               <p>Kwitansi ini merupakan bukti pembayaran yang sah.</p>
             </div>
             <div className="kwitansi-sign">
-              <p>Mengetahui,</p>
-              <p className="sign-space">Panitia</p>
-              <p className="sign-name">( ____________________ )</p>
-              <p className="sign-space">Bendahara</p>
-              <p className="sign-name">( ____________________ )</p>
-            </div>
-            <div className="kwitansi-stamp">
-              <div className="stamp-placeholder">
-                <p>STEMPEL</p>
-                <p>PONDOK PESANTREN</p>
-                <p>DELIMA</p>
+              <p className="mb-3 font-semibold">Mengetahui,</p>
+              <div className="flex flex-col items-center">
+                {settings?.bendahara_ttd && (
+                  <Image src={settings.bendahara_ttd} alt="TTD Bendahara" className="h-10 w-auto object-contain" />
+                )}
+              <p className="font-semibold underline mt-1">{settings?.bendahara_nama || 'Nama Bendahara'}</p>
+              <p className="text-[10px] text-gray-500 mt-1">Bendahara</p>
               </div>
             </div>
           </div>

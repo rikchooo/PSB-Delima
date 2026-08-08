@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { apiFetch } from "@/lib/api";
 import { getAuthToken, getPrivateSession } from "@/lib/auth";
 import { useRouter } from "next/navigation";
@@ -9,16 +9,20 @@ import PrivateHeader from "@/components/PrivateHeader";
 import { HiUserGroup, HiCheckCircle, HiClock, HiSearch, HiUser } from "react-icons/hi";
 
 export default function PengujiDashboard() {
-  // State untuk tab aktif, search term, data santri, loading, dan error
   const [activeTab, setActiveTab] = useState("jadwal");
   const [searchTerm, setSearchTerm] = useState("");
   const [santri, setSantri] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [activeYear, setActiveYear] = useState("");
   const router = useRouter();
+  const activeYearRef = useRef(activeYear);
 
   useEffect(() => {
-    // Cek otentikasi dan role
+    activeYearRef.current = activeYear;
+  }, [activeYear]);
+
+  useEffect(() => {
     const fetchData = async () => {
       try {
         if (!getAuthToken()) {
@@ -32,9 +36,10 @@ export default function PengujiDashboard() {
           return;
         }
 
-        const [santriResponse, nilaiResponse] = await Promise.all([
+        const [santriResponse, nilaiResponse, settingsResponse] = await Promise.all([
           apiFetch('/api/pendaftaran/santri'),
-          apiFetch('/api/pengujian/santri')
+          apiFetch('/api/pengujian/santri'),
+          apiFetch('/api/settings')
         ]);
 
         if (!santriResponse.ok) {
@@ -44,10 +49,16 @@ export default function PengujiDashboard() {
         const santriResult = await santriResponse.json();
         const nilaiResult = nilaiResponse.ok ? await nilaiResponse.json() : { data: [] };
 
+        if (settingsResponse.ok) {
+          const settingsJson = await settingsResponse.json();
+          if (settingsJson.data?.active_year) {
+            setActiveYear(settingsJson.data.active_year);
+          }
+        }
+
         const allData = santriResult.data || [];
         const nilaiData = nilaiResult.data || [];
 
-        // Create a set of id_pendaftaran that already have nilai
         const nilaiIds = new Set(nilaiData.map(item => item.id_pendaftaran));
 
         const acceptedSantri = allData.filter(item => item.status === 'accepted' || item.status === 'completed');
@@ -62,9 +73,19 @@ export default function PengujiDashboard() {
           testTime: "08:00 - 12:00",
           status: item.status,
           hasNilai: nilaiIds.has(item.id_pendaftaran),
+          tahun_pendaftaran: item.tahun_pendaftaran,
+          createdAt: item.created_at,
         }));
 
-        setSantri(mappedData);
+        mappedData.sort(
+          (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
+        );
+
+        const yearFilteredData = activeYearRef.current
+          ? mappedData.filter(item => String(item.tahun_pendaftaran) === activeYearRef.current)
+          : mappedData;
+
+        setSantri(yearFilteredData);
       } catch (err) {
         console.error('Error fetching data:', err);
         setError(err.message);
@@ -80,14 +101,12 @@ export default function PengujiDashboard() {
     router.push(`/PrivateWeb/penguji/nilai/${santriId}`);
   };
 
-  // Filter data
   const filteredSantri = santri.filter((s) => {
     const matchesSearch =
       s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       s.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
       s.phone.includes(searchTerm);
 
-    // Filter berdasarkan tab aktif
     if (activeTab === "jadwal") {
       return matchesSearch;
     } else if (activeTab === "semua") {
@@ -96,12 +115,10 @@ export default function PengujiDashboard() {
     return false;
   });
 
-  // Statistik
   const totalSantri = santri.length;
   const completedTests = santri.filter(s => s.hasNilai).length;
   const pendingTests = totalSantri - completedTests;
 
-  // Error state
   if (error) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
@@ -132,6 +149,13 @@ export default function PengujiDashboard() {
       <PrivateHeader />
 
       <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {activeYear && (
+          <div className="mb-6 inline-flex items-center px-4 py-2 bg-green-50 border border-green-200 rounded-lg">
+            <span className="text-sm font-medium text-green-800">
+              Tahun Pendaftaran Aktif: <span className="font-bold">{activeYear}</span>
+            </span>
+          </div>
+        )}
         <section aria-labelledby="stats-heading" className="mb-8">
           <h2 id="stats-heading" className="sr-only">
             Statistik Tes Santri

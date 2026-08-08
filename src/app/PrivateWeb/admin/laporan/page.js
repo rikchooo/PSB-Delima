@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { apiFetch } from "@/lib/api";
 import { getAuthToken, getPrivateSession } from "@/lib/auth";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import "@/styles/globals.css";
 
@@ -12,6 +12,8 @@ export default function LaporanPage() {
   const [error, setError] = useState(null);
   const [settings, setSettings] = useState({});
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const yearParam = searchParams.get("year");
 
   const kopSurat = {
     nama: "PONDOK PESANTREN DELIMA TJR CANGKRENG",
@@ -51,7 +53,16 @@ export default function LaporanPage() {
         const santriResult = await santriRes.json();
 
         const data = (santriResult.data || [])
-          .filter((x) => x.status === "accepted" || x.status === "completed")
+          .filter((x) => {
+            if (x.status !== "accepted" && x.status !== "completed") return false;
+            if (yearParam) {
+              const tahunPendaftaran = x.tahun_pendaftaran
+                ? Number(x.tahun_pendaftaran)
+                : NaN;
+              return tahunPendaftaran === Number(yearParam);
+            }
+            return true;
+          })
           .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
           .map((item, i) => ({
             no: i + 1,
@@ -73,7 +84,7 @@ export default function LaporanPage() {
     };
 
     fetchData();
-  }, [router]);
+  }, [router, yearParam]);
 
   const handlePrint = () => {
     window.print();
@@ -162,7 +173,12 @@ export default function LaporanPage() {
           <h2 className="font-bold text-[14px]">
             LAPORAN PENDAFTARAN SANTRI BARU
           </h2>
-          <p className="text-xs text-gray-600">Tahun Ajaran {currentYear}/{String(currentYear + 1).slice(-2)}</p>
+          <p className="text-xs text-gray-600">
+            {yearParam
+              ? `Tahun Ajaran ${yearParam}/${parseInt(yearParam) + 1}`
+              : `Tahun Ajaran ${currentYear}/${currentYear + 1}`
+            }
+          </p>
         </div>
 
         <table className="w-full border border-black text-[11px] border-collapse">
@@ -212,8 +228,13 @@ export default function LaporanPage() {
           <div className="text-center w-64">
             <p>Situbondo, {new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}</p>
             <div className="mt-8 mb-16">
-              <p className="font-medium underline">{namaPanitia}</p>
-              <p className="text-xs text-gray-600">{jabatanPanitia}</p>
+              <div className="flex flex-col items-center gap-1">
+                {settings.laporan_barcode && (
+                  <Image src={settings.laporan_barcode} alt="Barcode" width={120} height={48} className="mb-1 h-12 w-auto object-contain" />
+                )}
+                <p className="font-medium underline">{namaPanitia}</p>
+                <p className="text-xs text-gray-600">{jabatanPanitia}</p>
+              </div>
             </div>
           </div>
         </div>
