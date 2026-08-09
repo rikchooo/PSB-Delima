@@ -1,5 +1,7 @@
 "use client";
 
+// Halaman akses ditolak
+
 import { useRouter } from "next/navigation";
 import { HiExclamation } from "react-icons/hi";
 
@@ -7,6 +9,7 @@ export default function Unauthorized() {
   const router = useRouter();
 
   const handleBack = () => {
+    // Jika ada riwayat navigasi, kembali; jika tidak, ke login
     if (window.history.length > 1) {
       router.back();
     } else {

@@ -1,5 +1,7 @@
 "use client";
 
+// Dashboard pengasuh
+
 import { useState, useEffect, useRef, useMemo } from "react";
 import { apiFetch } from "@/lib/api";
 import { getAuthToken, getPrivateSession } from "@/lib/auth";
@@ -30,6 +32,7 @@ export default function PengasuhDashboard() {
   useEffect(() => {
     const fetchData = async () => {
       try {
+        // Cek autentikasi dan role pengasuh
         if (!getAuthToken()) {
           router.replace("/PrivateWeb/login");
           return;
@@ -41,6 +44,7 @@ export default function PengasuhDashboard() {
           return;
         }
 
+        // Ambil data santri dan settings secara paralel
         const [response, settingsResponse] = await Promise.all([
           apiFetch('/api/pengasuh/santri'),
           apiFetch('/api/settings')
@@ -56,6 +60,7 @@ export default function PengasuhDashboard() {
           }
         }
 
+        // Transformasi data API ke format yang digunakan tabel
         const mappedData = (result.data || []).map((item) => {
           const levelAlquran = item.level_alquran || "-";
           const levelKitab = item.level_kitab || "-";
@@ -109,6 +114,7 @@ export default function PengasuhDashboard() {
     fetchData();
   }, [router]);
 
+  // Ambil biaya pendaftaran berdasarkan tahun aktif
   useEffect(() => {
     const fetchSettings = async () => {
       try {
@@ -146,6 +152,7 @@ export default function PengasuhDashboard() {
     ? santri.filter(item => String(item.tahun_pendaftaran) === activeYear)
     : santri;
 
+  // Filter berdasarkan kata pencarian dan status pendaftaran
   const filteredSantri = Array.isArray(yearFilteredSantri)
     ? yearFilteredSantri.filter((s) => {
         const matchesSearch =
@@ -182,12 +189,15 @@ export default function PengasuhDashboard() {
     ? yearFilteredSantri.filter((s) => s.status === "accepted" || s.status === "completed")
         .length
     : 0;
+  // Hitung santri yang sudah diuji (memiliki nilai)
   const sudahUji = Array.isArray(yearFilteredSantri)
     ? yearFilteredSantri.filter((s) => s.quranScore > 0 || s.kitabScore > 0).length
     : 0;
 
+  // Hitung statistik pembayaran
   const paymentStats = useMemo(() => {
     if (!Array.isArray(yearFilteredSantri)) return { sudahBayar: 0, menungguKonfirmasi: 0, totalNominalTerbayar: 0 };
+    // Pembayaran dianggap verified jika statusnya lunas/confirmed/success
     const verified = ["lunas", "confirmed", "success"];
     let sudahBayar = 0;
     let menungguKonfirmasi = 0;
@@ -208,6 +218,7 @@ export default function PengasuhDashboard() {
   const menungguKonfirmasi = paymentStats.menungguKonfirmasi;
 
   const getActivityStatus = (s) => {
+    // Tentukan status aktivitas santri untuk tampilan
     const hasExam = s.quranScore > 0 || s.kitabScore > 0;
     const isPaymentVerified = s.paymentStatus === "lunas" || s.paymentStatus === "confirmed" || s.paymentStatus === "success";
     if (s.status === "completed" && hasExam && isPaymentVerified) return "completed";
@@ -218,6 +229,7 @@ export default function PengasuhDashboard() {
   };
 
   const getActivityLabel = (status) => {
+    // Label aktivitas untuk tampilan timeline
     switch (status) {
       case "examined": return "Nilai telah dimasukkan";
       case "paid": return "Pembayaran diverifikasi";
@@ -228,6 +240,7 @@ export default function PengasuhDashboard() {
   };
 
   const getActivityIcon = (status) => {
+    // Icon sesuai status aktivitas
     switch (status) {
       case "examined": return <HiClipboard className="w-5 h-5 text-blue-600" />;
       case "paid": return <HiCurrencyDollar className="w-5 h-5 text-green-600" />;
@@ -245,6 +258,7 @@ export default function PengasuhDashboard() {
     setBiayaDetail(0);
 
     try {
+      // Ambil detail biaya tahun pendaftaran santri saat modal dibuka
       const year = activeYear || new Date(s.acceptedDate || s.createdAt).getFullYear().toString();
       const res = await apiFetch(`/api/settings/biaya/${year}`);
       if (res.ok) {

@@ -1,5 +1,7 @@
 'use client';
 
+// Halaman profil pengguna
+
 import Link from 'next/link';
 import { apiFetch } from "@/lib/api";
 import { clearAuthSession, getAuthToken } from "@/lib/auth";
@@ -7,6 +9,12 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { HiCheckCircle, HiClock, HiExclamation, HiLogout, HiDocumentText, HiCurrencyDollar, HiChevronDown, HiPencil } from 'react-icons/hi';
 
+/**
+ * @function hasFilledSantriForm
+ * @description Cek apakah user sudah mengisi formulir santri (draft tersimpan).
+ * @param {string|null} savedData - JSON string dari localStorage
+ * @returns {boolean} True jika ada field yang terisi
+ */
 const hasFilledSantriForm = (savedData) => {
   if (!savedData) return false;
 
@@ -31,12 +39,12 @@ export default function ProfilPage() {
     const userData = localStorage.getItem('user');
     return userData ? JSON.parse(userData) : null;
   });
-  
+
   const [registrationStatus, setRegistrationStatus] = useState(() => {
     if (typeof window === 'undefined') return '';
     return localStorage.getItem('registration_status') || '';
   });
-  
+
   const [paymentStatus, setPaymentStatus] = useState(() => {
     if (typeof window === 'undefined') return '';
     return localStorage.getItem('payment_status') || '';
@@ -48,6 +56,7 @@ export default function ProfilPage() {
   const [pendaftaranAktif, setPendaftaranAktif] = useState(true);
   const [notif, setNotif] = useState(null);
 
+  // Ambil data status pendaftaran dan pembayaran terbaru dari API
   useEffect(() => {
     if (!user || !getAuthToken()) {
       clearAuthSession({ mode: 'public' });
@@ -55,6 +64,7 @@ export default function ProfilPage() {
       return;
     }
 
+    // Muat data formulir dan pembayaran tersimpan di localStorage
     const savedSantriData = localStorage.getItem(`santri_form_data_${user.email}`);
     const savedPaymentData = localStorage.getItem(`payment_data_${user.email}`);
     setHasSantriData(hasFilledSantriForm(savedSantriData));
@@ -72,6 +82,7 @@ export default function ProfilPage() {
     const fetchLatestStatus = async () => {
       setFetchError(null);
       try {
+        // Ambil status pendaftaran dan pembayaran dari backend
         const statusResponse = await apiFetch(`/api/pendaftaran/status/${encodeURIComponent(user.email)}`);
         if (!statusResponse.ok) {
           throw new Error(`HTTP error! status: ${statusResponse.status}`);
@@ -83,12 +94,14 @@ export default function ProfilPage() {
           localStorage.setItem('registration_status', data.status);
         }
 
+        // Normalisasi status pembayaran ke nilai yang dikenali
         const normalizedPaymentStatus = data.payment_status && ['pending', 'submitted', 'confirmed', 'lunas', 'success', 'rejected', 'cancelled'].includes(data.payment_status)
           ? data.payment_status
           : 'pending';
         setPaymentStatus(normalizedPaymentStatus);
         localStorage.setItem('payment_status', normalizedPaymentStatus);
 
+        // Ambil detail pembayaran terbaru
         const paymentResponse = await apiFetch(`/api/pembayaran/email/${encodeURIComponent(user.email)}`);
         if (paymentResponse.ok) {
           const paymentResult = await paymentResponse.json();
@@ -113,6 +126,7 @@ export default function ProfilPage() {
 
     fetchLatestStatus();
 
+    // Cek apakah pendaftaran masih aktif dari pengaturan
     const fetchPendaftaranAktif = async () => {
       try {
         const res = await apiFetch('/api/settings/pendaftaran_aktif');
@@ -140,7 +154,9 @@ export default function ProfilPage() {
   const isRegistrationSubmitted = registrationStatus === 'submitted' || registrationStatus === 'pending';
   const isRegistrationFilled = hasSantriData || isRegistrationSubmitted || isRegistrationAccepted;
   const isPaymentSubmitted = paymentStatus === 'submitted' || Boolean(paymentData);
+  // Pembayaran dianggap lunas jika statusnya confirmed/lunas/success
   const isPaymentConfirmed = ['confirmed', 'lunas', 'success'].includes(paymentStatus);
+  // Tentukan link pembayaran: ke bukti jika sudah lunas, ke form jika belum
   const paymentHref = isPaymentConfirmed && paymentData?.id_pendaftaran
     ? `/PublicWeb/pembayaran/buktipembayaran?id=${paymentData.id_pendaftaran}`
     : '/PublicWeb/pembayaran';

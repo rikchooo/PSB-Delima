@@ -1,5 +1,7 @@
 "use client";
 
+// Halaman pembayaran pendaftaran
+
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { apiFetch } from "@/lib/api";
@@ -7,7 +9,7 @@ import { getAuthToken } from "@/lib/auth";
 import { HiCheck, HiInformationCircle, HiOutlineOfficeBuilding, HiClipboard, HiExclamation, HiClock, HiCloudUpload, HiRefresh, HiPaperAirplane, HiCheckCircle, HiPrinter, HiExclamationCircle } from "react-icons/hi";
 
 export default function PembayaranPage() {
-  // State untuk bukti pembayaran, status pembayaran, error, dan email user
+  // State form
   const router = useRouter();
   const [buktiPembayaran, setBuktiPembayaran] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -15,9 +17,10 @@ export default function PembayaranPage() {
   const [uploadError, setUploadError] = useState("");
   const [userEmail, setUserEmail] = useState("");
 
-  // Ambil email user dari localStorage dan fetch status pembayaran terbaru dari backend
+  // Ambil data awal
   useEffect(() => {
     if (typeof window !== "undefined") {
+      // Cek autentikasi, redirect ke login publik jika belum login
       if (!getAuthToken()) {
         router.replace("/PublicWeb/login");
         return;
@@ -35,12 +38,14 @@ export default function PembayaranPage() {
 
       const fetchPaymentStatus = async () => {
         try {
+          // Ambil status pembayaran terbaru dari backend
           const response = await apiFetch(`/api/pendaftaran/status/${encodeURIComponent(email)}`);
           if (response.ok) {
             const data = await response.json();
             const backendStatus = data.payment_status || "";
             const confirmedStatuses = ["confirmed", "lunas", "success"];
             const isConfirmed = confirmedStatuses.includes(backendStatus);
+            // Cek apakah bukti pembayaran pernah dikirim
             const hasSubmittedProof =
               backendStatus === "submitted" ||
               localStorage.getItem("payment_status") === "submitted";
@@ -62,12 +67,14 @@ export default function PembayaranPage() {
 
       const fetchBiaya = async () => {
         try {
+          // Ambil tahun aktif dari settings
           const settingsRes = await apiFetch('/api/settings');
           let activeYear = new Date().getFullYear();
           if (settingsRes.ok) {
             const settingsData = await settingsRes.json();
             activeYear = parseInt(settingsData.data?.active_year) || activeYear;
           }
+          // Ambil biaya pendaftaran sesuai tahun aktif
           const biayaRes = await apiFetch(`/api/settings/biaya/${activeYear}`);
           if (biayaRes.ok) {
             const biayaData = await biayaRes.json();
@@ -88,11 +95,11 @@ export default function PembayaranPage() {
     bank: "BSI (Bank Syariah Indonesia)",
     nomor: "7258945578",
     nama: "Yayasan Delima Tanjung Rejo",
-    kodeBayar: "DTJR-2021",
+    kodeBayar: "DTJR-2026",
   };
   const [biaya, setBiaya] = useState(0);
 
-  // Cek status pembayaran dari localStorage
+  // Validasi dan handler file upload bukti pembayaran
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -116,7 +123,7 @@ export default function PembayaranPage() {
     }
   };
 
-  // Handle submit bukti pembayaran
+  // Submit bukti
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!buktiPembayaran) {
@@ -148,7 +155,7 @@ export default function PembayaranPage() {
         fileType: buktiPembayaran.type,
       });
 
-      // Upload ke Cloudinary
+      // Upload bukti pembayaran ke Cloudinary
       const formDataUpload = new FormData();
       formDataUpload.append("file", buktiPembayaran);
       formDataUpload.append(
@@ -185,7 +192,7 @@ export default function PembayaranPage() {
         );
       }
 
-      // Check if response is OK before using data
+      // Cek respon Cloudinary
       if (!cloudinaryResponse.ok) {
         const errorMsg = cloudinaryData?.error?.message ||
           cloudinaryData?.error ||
@@ -213,7 +220,7 @@ export default function PembayaranPage() {
         publicId: cloudinaryData.public_id
       });
 
-      // Kirim ke backend
+      // Kirim URL bukti pembayaran ke backend
       const response = await apiFetch(`/api/pembayaran`, {
         method: "POST",
         body: JSON.stringify({
@@ -236,6 +243,7 @@ export default function PembayaranPage() {
         );
       }
 
+      // Simpan status pembayaran ke localStorage
       localStorage.setItem(
         "payment_status",
         result.data?.status_pembayaran || "submitted",

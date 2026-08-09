@@ -1,5 +1,7 @@
 'use client';
 
+// Halaman registrasi akun baru
+
 import Image from 'next/image';
 import { API_URL } from "@/lib/config";
 import { apiFetch } from "@/lib/api";
@@ -27,12 +29,14 @@ export default function RegisterPage() {
     setError('');
     setLoading(true);
 
+    // Validasi field wajib diisi
     if (!formData.full_name || !formData.email || !formData.password) {
       setError('Mohon lengkapi semua field');
       setLoading(false);
       return;
     }
 
+    // Validasi panjang password minimal 6 karakter
     if (formData.password.length < 6) {
       setError('Password minimal 6 karakter');
       setLoading(false);
@@ -54,6 +58,7 @@ export default function RegisterPage() {
       }
 
       alert('Registrasi berhasil! Silakan login.');
+      // Redirect ke halaman login setelah registrasi sukses
       router.push('/PublicWeb/login');
     } catch (err) {
       setError(err.message || 'Terjadi kesalahan. Silakan coba lagi.');
@@ -176,7 +181,7 @@ export default function RegisterPage() {
                 <input
                   type={showPassword ? 'text' : 'password'}
                   name="password"
-                  placeholder="Min. 8 karakter"
+                  placeholder="Min. 6 karakter"
                   value={formData.password}
                   onChange={handleChange}
                   className="w-full px-4 py-3 pr-12 bg-[#F9F9F9] border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#137333]/20 focus:border-[#137333] focus:bg-white text-sm text-gray-800 transition-all duration-200"

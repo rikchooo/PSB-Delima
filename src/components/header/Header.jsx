@@ -10,7 +10,6 @@ export default function Header() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState(null);
 
-  // Baca login state dari localStorage
   const [registrationStatus, setRegistrationStatus] = useState(() => {
     if (typeof window === 'undefined') return '';
     return localStorage.getItem('registration_status') || '';
@@ -21,7 +20,6 @@ export default function Header() {
     return localStorage.getItem('payment_status') || '';
   });
 
-  // Sync auth state dari localStorage
   useEffect(() => {
     const initAuth = () => {
       const loggedIn = localStorage.getItem('isLoggedIn');
@@ -32,13 +30,12 @@ export default function Header() {
 
     initAuth();
 
-    // listener perubahan localStorage
     const handleStorage = () => {
       const status = localStorage.getItem('registration_status') || '';
       const payment = localStorage.getItem('payment_status') || '';
       const loggedIn = localStorage.getItem('isLoggedIn');
       const userData = localStorage.getItem('user');
-      
+
       setRegistrationStatus(status);
       setPaymentStatus(payment);
       setIsLoggedIn(!!loggedIn);
@@ -56,7 +53,6 @@ export default function Header() {
     };
   }, []);
 
-  // Navigation handlers
   const handleLogin = () => {
     window.location.href = '/PublicWeb/login';
   };
@@ -89,9 +85,7 @@ export default function Header() {
   return (
     <header className="bg-green-50 border-b sticky top-0 z-50">
       <div className="max-w-5xl mx-auto px-3 sm:px-5 lg:px-0">
-        {/* HEADER BAR */}
         <div className="flex justify-between items-center h-24 md:h-20">
-          {/* Logo */}
           <Link href="/" className="w-11 h-11 block">
             <Image
               src="/icons/LogoPonPes.png"
@@ -102,7 +96,6 @@ export default function Header() {
             />
           </Link>
 
-          {/* Desktop menu */}
           <nav className="hidden md:flex items-center space-x-6">
             {!isLoggedIn ? (
               <div className="flex items-center space-x-3">
@@ -121,21 +114,17 @@ export default function Header() {
                 </button>
               </div>
             ) : (
-              /* Profile Link - navigates to profile page */
               <Link
                 href="/PublicWeb/profil"
                 className="flex items-center space-x-2 py-2 px-2 hover:bg-gray-100 rounded-full transition-colors"
               >
                 <div className="w-10 h-10 bg-green-700 rounded-full flex items-center justify-center">
-                  <span className="text-white font-bold text-lg">
-                    {userInitials}
-                  </span>
+                  <span className="text-white font-bold text-lg">{userInitials}</span>
                 </div>
               </Link>
             )}
           </nav>
 
-          {/* Mobile button */}
           <div className="md:hidden">
             {!isLoggedIn ? (
               <button onClick={() => setIsMenuOpen(!isMenuOpen)}>
@@ -146,22 +135,18 @@ export default function Header() {
                 )}
               </button>
             ) : (
-              /* Mobile Profile Button - Links to profile page */
               <Link
                 href="/PublicWeb/profil"
                 className="flex items-center space-x-2"
               >
                 <div className="w-12 h-12 bg-green-700 rounded-full flex items-center justify-center">
-                  <span className="text-white font-bold text-lg">
-                    {userInitials}
-                  </span>
+                  <span className="text-white font-bold text-lg">{userInitials}</span>
                 </div>
               </Link>
             )}
           </div>
         </div>
 
-        {/* MOBILE MENU (for non-logged in users) */}
         {!isLoggedIn && isMenuOpen && (
           <div className="md:hidden fixed inset-x-0 top-24 bg-white border-t z-40 shadow-lg">
             <div className="py-6 px-6 space-y-4">

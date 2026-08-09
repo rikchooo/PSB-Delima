@@ -1,10 +1,16 @@
 'use client';
 
+// Formulir pendaftaran santri baru
+
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiFetch } from "@/lib/api";
 import { getAuthToken } from "@/lib/auth";
 
+/**
+ * Struktur data formulir pendaftaran santri.
+ * Digunakan sebagai initial state dan referensi field yang harus diisi.
+ */
 const initialFormData = {
   namaLengkap: '',
   namaPanggilan: '',
@@ -38,7 +44,7 @@ export default function PendaftaranSantri() {
   const router = useRouter();
   const [formData, setFormData] = useState(initialFormData);
 
-  // State untuk user email, dropdown, berkas, dan status submit
+  // State
   const [userEmail, setUserEmail] = useState('');
   const [hasLoadedSavedData, setHasLoadedSavedData] = useState(false);
   const [showJenisKelamin, setShowJenisKelamin] = useState(false);
@@ -50,9 +56,10 @@ export default function PendaftaranSantri() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState(null);
 
-  // Ambil email user dari localStorage
+  // Ambil email
   useEffect(() => {
     if (typeof window !== 'undefined') {
+      // Cek autentikasi, redirect ke login jika belum login
       if (!getAuthToken()) {
         router.replace('/PublicWeb/login');
         return;
@@ -66,6 +73,7 @@ export default function PendaftaranSantri() {
 
       const user = JSON.parse(userData);
       const email = user.email || '';
+      // Muat draft formulir tersimpan berdasarkan email user
       const savedData = email ? localStorage.getItem(`${SANTRI_FORM_STORAGE_PREFIX}${email}`) : null;
 
       setUserEmail(email);
@@ -83,6 +91,7 @@ export default function PendaftaranSantri() {
     }
   }, [router]);
 
+  // Auto-save draft formulir ke localStorage setiap kali formData atau berkas berubah
   useEffect(() => {
     if (!hasLoadedSavedData || !userEmail || typeof window === 'undefined') return;
 
@@ -109,7 +118,7 @@ export default function PendaftaranSantri() {
     '> Rp 5.000.000',
   ];
 
-  // State berkas yang harus diupload
+  // Daftar berkas
   const berkasList = [
     { name: 'akta', label: 'Akta Kelahiran' },
     { name: 'kk', label: 'Kartu Keluarga (KK)' },
@@ -119,11 +128,19 @@ export default function PendaftaranSantri() {
     { name: 'suratSehat', label: 'Surat Keterangan Sehat' },
   ];
 
-  // Handle perubahan input form
+  /**
+   * @description Handler perubahan input form (controlled component).
+   *   Menggunakan pattern functional update untuk menghindari stale closure.
+   */
   const handleChange = (e) =>
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
 
-  // Handle perubahan input file
+  /**
+   * @description Handler perubahan input file.
+   *   Validasi: ukuran maksimal 2MB, tipe file PDF/Word/JPG/PNG.
+   *   File disimpan di state `berkas` untuk diupload nanti.
+   * @throws {alert} - Alert jika file terlalu besar atau format tidak valid
+   */
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -152,7 +169,15 @@ export default function PendaftaranSantri() {
     setBerkas({ ...berkas, [e.target.name]: file });
   };
 
-  // Fungsi untuk upload file ke Cloudinary
+  /**
+   * @description Upload satu file ke Cloudinary CDN.
+   *   Folder disesuaikan dengan nama santri (sanitized).
+   * @param {File} file - File yang akan diupload
+   * @param {string} folderName - Nama folder (nama santri)
+   * @param {string} fileName - Base name untuk public_id
+   * @returns {Promise<{url: string, publicId: string, format: string, size: number, originalName: string}>}
+   * @throws {Error} Jika upload gagal atau respons Cloudinary tidak valid
+   */
   const uploadFileToCloudinary = async (file, folderName, fileName) => {
     try {
       // Validasi nama folder
@@ -164,7 +189,7 @@ export default function PendaftaranSantri() {
       formDataUpload.append('file', file);
       formDataUpload.append('upload_preset', process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET);
       
-      // Sanitize folder name - replace special characters
+      // Bersihkan nama folder
       const sanitizedFolder = folderName.replace(/[^a-zA-Z0-9_-]/g, '_');
       formDataUpload.append('folder', `santri/${sanitizedFolder}`);
       formDataUpload.append('public_id', `${fileName}_${Date.now()}`);
@@ -207,8 +232,8 @@ export default function PendaftaranSantri() {
       
       if (!response.ok) {
         const errorMsg = data?.error?.message || 
-                         data?.error || 
-                         `HTTP ${response.status}`;
+                          data?.error || 
+                          `HTTP ${response.status}`;
         console.error('Cloudinary error response:', data);
         throw new Error(`Upload gagal: ${errorMsg}`);
       }
@@ -241,17 +266,21 @@ export default function PendaftaranSantri() {
     }
   };
 
-  // Handle submit form
+  /**
+   * @description Handler submit formulir pendaftaran.
+   *   Alur: validasi input → upload berkas ke Cloudinary → submit ke backend.
+   * @throws {Error} Jika validasi gagal, upload gagal, atau backend error
+   */
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
     setError(null);
 
     try {
-      // Validasi data wajib diisi
+      // Validasi field wajib diisi sebelum submit
       const requiredFields = ['namaLengkap', 'namaPanggilan', 'jenisKelamin'];
       const missingFields = requiredFields.filter(field => !formData[field]);
-      
+
       if (missingFields.length > 0) {
         const fieldLabels = {
           namaLengkap: 'Nama Lengkap',
@@ -264,11 +293,12 @@ export default function PendaftaranSantri() {
         return;
       }
 
+      // Validasi berkas wajib di-upload
       const requiredFiles = ['akta', 'kk', 'ktpOrtu', 'ijazah', 'foto', 'suratSehat'];
       const missingFiles = requiredFiles.filter(file => !berkas[file] && !savedBerkas[file]);
-      
+
       if (missingFiles.length > 0) {
-        const missingNames = missingFiles.map(name => 
+        const missingNames = missingFiles.map(name =>
           berkasList.find(b => b.name === name)?.label
         ).join(', ');
         setError(`Mohon lengkapi berkas: ${missingNames}`);
@@ -277,15 +307,16 @@ export default function PendaftaranSantri() {
       }
 
       console.log('Starting file upload process for:', formData.namaLengkap);
-      
+
+      // Upload berkas ke Cloudinary satu per satu
       const cloudinaryUrls = { ...savedBerkas };
       setUploadingFiles({});
 
       for (const [key, file] of Object.entries(berkas)) {
         if (!file) continue;
-        
+
         setUploadingFiles(prev => ({ ...prev, [key]: true }));
-        
+
         try {
           console.log(`Uploading file: ${key}`);
           const result = await uploadFileToCloudinary(file, formData.namaLengkap, key);
@@ -302,6 +333,7 @@ export default function PendaftaranSantri() {
 
       console.log('All files uploaded. Submitting registration to backend...');
 
+      // Kirim data pendaftaran lengkap ke backend
       const response = await apiFetch(`/api/pendaftaran/santri`, {
         method: 'POST',
         body: JSON.stringify({
@@ -318,6 +350,7 @@ export default function PendaftaranSantri() {
         throw new Error(result.message || 'Gagal menyimpan data');
       }
 
+      // Simpan status submitted ke localStorage setelah berhasil
       localStorage.setItem('registration_status', 'submitted');
       setSavedBerkas(cloudinaryUrls);
       localStorage.setItem(
@@ -330,13 +363,13 @@ export default function PendaftaranSantri() {
           updatedAt: new Date().toISOString(),
         })
       );
-      alert('✅ Pendaftaran berhasil dikirim!');
+      alert('Pendaftaran berhasil dikirim!');
       window.location.href = '/PublicWeb/profil';
-      
+
     } catch (err) {
       console.error('Submit error:', err);
       setError(err.message || 'Gagal menyimpan data. Silakan coba lagi.');
-      alert(`❌ ${err.message || 'Gagal menyimpan data. Silakan coba lagi.'}`);
+      alert(`${err.message || 'Gagal menyimpan data. Silakan coba lagi.'}`);
     } finally {
       setIsSubmitting(false);
       setUploadingFiles({});

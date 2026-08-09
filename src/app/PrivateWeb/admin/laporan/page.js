@@ -1,5 +1,7 @@
 "use client";
 
+// Halaman laporan santri diterima
+
 import { useState, useEffect } from "react";
 import { apiFetch } from "@/lib/api";
 import { getAuthToken, getPrivateSession } from "@/lib/auth";
@@ -26,6 +28,7 @@ export default function LaporanPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
+        // Cek autentikasi dan role admin
         if (!getAuthToken()) {
           router.replace("/PrivateWeb/login");
           return;
@@ -37,6 +40,7 @@ export default function LaporanPage() {
           return;
         }
 
+        // Ambil settings dan data santri secara paralel
         const [settingsRes, santriRes] = await Promise.all([
           apiFetch('/api/settings'),
           apiFetch('/api/pendaftaran/santri'),
@@ -52,6 +56,7 @@ export default function LaporanPage() {
         }
         const santriResult = await santriRes.json();
 
+        // Filter santri accepted/completed, optional filter by year param
         const data = (santriResult.data || [])
           .filter((x) => {
             if (x.status !== "accepted" && x.status !== "completed") return false;
@@ -91,6 +96,7 @@ export default function LaporanPage() {
   };
 
   const handleBack = () => {
+    // Kembali ke halaman sebelumnya atau ke dashboard admin
     if (window.history.length > 1) {
       router.back();
     } else {

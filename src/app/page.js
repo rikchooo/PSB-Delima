@@ -1,5 +1,7 @@
 "use client";
 
+// Halaman landing PSB Delima
+
 import "@/styles/globals.css";
 import Image from "next/image";
 import { useEffect, useState } from "react";
@@ -35,6 +37,7 @@ export default function LandingPage() {
     loadSettings();
   }, []);
 
+  // Muat jadwal pendaftaran dari API, fallback ke localStorage
   useEffect(() => {
     const loadSchedule = async () => {
       try {
@@ -64,6 +67,7 @@ export default function LandingPage() {
     };
 
     loadSchedule();
+    // Sinkronisasi jadwal antar tab browser
     window.addEventListener("storage", loadSchedule);
 
     return () => {

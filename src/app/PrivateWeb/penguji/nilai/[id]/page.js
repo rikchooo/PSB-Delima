@@ -1,5 +1,7 @@
 "use client";
 
+// Halaman input nilai tes santri
+
 import { useState, useEffect, useMemo } from "react";
 import { apiFetch } from "@/lib/api";
 import { getAuthToken, getPrivateSession } from "@/lib/auth";
@@ -51,6 +53,7 @@ export default function InputNilaiPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
+        // Cek autentikasi dan role penguji
         if (!getAuthToken()) {
           router.replace("/PrivateWeb/login");
           return;
@@ -62,6 +65,7 @@ export default function InputNilaiPage() {
           return;
         }
 
+        // Ambil detail santri berdasarkan ID dari URL
         const response = await apiFetch(`/api/pendaftaran/santri/${params.id}`);
 
         if (!response.ok) {
@@ -70,7 +74,8 @@ export default function InputNilaiPage() {
 
         const result = await response.json();
         const data = result.data;
-        
+
+        // Transformasi data API ke format yang digunakan form
         setSantri({
           id: data.id_pendaftaran,
           namaLengkap: data.nama_lengkap,
@@ -106,6 +111,7 @@ export default function InputNilaiPage() {
   };
 
   const validateForm = () => {
+    // Validasi nilai Al-Quran harus diisi dan berupa angka 0-100
     if (!formData.nilaiAlquran && formData.nilaiAlquran !== 0) {
       alert("Nilai Al-Quran harus diisi");
       return false;
@@ -114,30 +120,31 @@ export default function InputNilaiPage() {
       alert("Nilai Kitab Kuning harus diisi");
       return false;
     }
-    
+
     const alquran = parseFloat(formData.nilaiAlquran);
     const kitab = parseFloat(formData.nilaiKitab);
-    
+
     if (isNaN(alquran) || isNaN(kitab)) {
       alert("Nilai harus berupa angka");
       return false;
     }
-    
+
     if (alquran < 0 || alquran > 100 || kitab < 0 || kitab > 100) {
       alert("Nilai harus antara 0-100");
       return false;
     }
-    
+
     return true;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validateForm()) return;
-    
+
     setSubmitting(true);
     try {
+      // Kirim nilai tes ke backend
       const response = await apiFetch(`/api/pengujian/santri/${params.id}/nilai`, {
         method: 'POST',
         body: JSON.stringify({
@@ -153,11 +160,12 @@ export default function InputNilaiPage() {
       }
 
       const result = await response.json();
-      
+
       alert("Nilai berhasil disimpan!");
-      
+
+      // Kembali ke halaman sebelumnya setelah sukses
       router.back();
-      
+
     } catch (err) {
       console.error('Error submitting nilai:', err);
       alert(`Gagal menyimpan nilai: ${err.message}`);

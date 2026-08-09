@@ -1,5 +1,7 @@
 "use client";
 
+// Halaman login private (panitia/penguji/pengasuh)
+
 import Image from 'next/image';
 import { apiFetch } from "@/lib/api";
 import { setAuthSession } from "@/lib/auth";
@@ -25,7 +27,7 @@ export default function LoginPage() {
     { key: "pengasuh", label: "Pengasuh", icon: UserCircle },
   ];
 
-  // Fungsi teks pada dropdown berdasarkan role yang dipilih
+  // Teks dropdown role
   const getRoleDisplayText = () => {
     if (!role) return "Pilih Role Anda";
     const selectedRole = roles.find((r) => r.key === role);
@@ -57,6 +59,7 @@ export default function LoginPage() {
     }
 
     try {
+      // Kirim kredensial + role ke endpoint private login
       const res = await apiFetch('/api/user/private/login', {
         method: "POST",
         body: JSON.stringify({ email, password, role }),
@@ -76,8 +79,10 @@ export default function LoginPage() {
         return;
       }
 
+      // Simpan sesi private (admin/penguji/pengasuh)
       setAuthSession({ token: data.token, user: data.user, mode: "private" });
 
+      // Redirect ke dashboard sesuai role yang dipilih
       router.push(`/PrivateWeb/${role}`);
     } catch (err) {
       setError(err.message || "Terjadi kesalahan. Silakan coba lagi.");

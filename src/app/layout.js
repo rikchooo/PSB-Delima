@@ -11,7 +11,7 @@ export default function RootLayout({ children }) {
   const pathname = usePathname();
   const [loading, setLoading] = useState(true);
 
-  // Efek loading 2 detik
+  // Loading
   useEffect(() => {
     const timer = setTimeout(() => {
       setLoading(false);
@@ -20,20 +20,20 @@ export default function RootLayout({ children }) {
     return () => clearTimeout(timer);
   }, []);
 
-  // Cek halaman otentikasi
+  // Halaman auth
   const isAuthPage =
     pathname === '/PublicWeb/login' ||
     pathname === '/PublicWeb/register' ;
 
-  // Cek halaman pendaftaran
+  // Halaman pendaftaran
   const isRegistrationPage =
     pathname === '/pendaftaran' ||
     pathname === '/PublicWeb/pendaftaran';
 
-  // Cek halaman PrivateWeb
+  // PrivateWeb
   const isPrivateWebPage = pathname?.startsWith('/PrivateWeb/');
 
-  // Cek halaman bukti pembayaran
+  // Bukti pembayaran
   const isBuktiPembayaranPage = pathname === '/PublicWeb/pembayaran/buktipembayaran';
 
   return (

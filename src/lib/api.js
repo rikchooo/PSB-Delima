@@ -19,7 +19,6 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = 15000) {
     clearTimeout(timer);
   }
 }
-
 export async function apiFetch(path, options = {}) {
   const url = `${API_URL}${path}`;
   const token = getAuthToken();

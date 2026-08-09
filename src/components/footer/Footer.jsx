@@ -1,5 +1,3 @@
-import { FaMosque } from 'react-icons/fa';
-
 export default function Footer() {
   return (
     <footer className="bg-green-50 border border-t border-light">

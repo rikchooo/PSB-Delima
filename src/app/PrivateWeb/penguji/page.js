@@ -1,5 +1,7 @@
 "use client";
 
+// Dashboard penguji
+
 import { useState, useEffect, useRef } from "react";
 import { apiFetch } from "@/lib/api";
 import { getAuthToken, getPrivateSession } from "@/lib/auth";
@@ -25,6 +27,7 @@ export default function PengujiDashboard() {
   useEffect(() => {
     const fetchData = async () => {
       try {
+        // Cek autentikasi dan role penguji
         if (!getAuthToken()) {
           router.replace("/PrivateWeb/login");
           return;
@@ -36,6 +39,7 @@ export default function PengujiDashboard() {
           return;
         }
 
+        // Health check backend
         const healthCheck = await apiFetch('/api/health', {
           method: 'GET',
         });
@@ -43,6 +47,7 @@ export default function PengujiDashboard() {
           throw new Error('Backend server is not responding properly');
         }
 
+        // Ambil data santri, nilai, dan settings secara paralel
         const [santriResponse, nilaiResponse, settingsResponse] = await Promise.all([
           apiFetch('/api/pendaftaran/santri'),
           apiFetch('/api/pengujian/santri'),
@@ -72,10 +77,13 @@ export default function PengujiDashboard() {
         const allData = santriResult.data || [];
         const nilaiData = nilaiResult.data || [];
 
+        // Cek santri yang sudah dinilai berdasarkan id_pendaftaran
         const nilaiIds = new Set(nilaiData.map(item => item.id_pendaftaran));
 
+        // Filter santri dengan status accepted/completed
         const acceptedSantri = allData.filter(item => item.status === 'accepted' || item.status === 'completed');
 
+        // Transformasi data API ke format yang digunakan tabel
         const mappedData = acceptedSantri.map((item) => ({
           id: item.id_pendaftaran,
           name: item.nama_lengkap,
@@ -90,6 +98,7 @@ export default function PengujiDashboard() {
           createdAt: item.created_at,
         }));
 
+        // Urutkan dari yang terbaru
         mappedData.sort(
           (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
         );
@@ -114,6 +123,7 @@ export default function PengujiDashboard() {
     ? santri.filter(item => String(item.tahun_pendaftaran) === activeYear)
     : santri;
 
+  // Filter berdasarkan tab aktif dan kata pencarian
   const filteredSantri = yearFilteredSantri.filter((s) => {
     const matchesSearch =
       s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -129,6 +139,7 @@ export default function PengujiDashboard() {
   });
 
   const totalSantri = yearFilteredSantri.length;
+  // Hitung tes yang sudah selesai berdasarkan flag hasNilai
   const completedTests = yearFilteredSantri.filter(s => s.hasNilai).length;
   const pendingTests = totalSantri - completedTests;
 

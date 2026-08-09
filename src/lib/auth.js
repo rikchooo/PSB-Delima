@@ -2,7 +2,6 @@ export function getAuthToken() {
   if (typeof window === 'undefined') return null;
   return localStorage.getItem('auth_token');
 }
-
 export function setAuthSession({ token, user, mode = 'public' }) {
   if (typeof window === 'undefined') return;
 
@@ -26,7 +25,6 @@ export function setAuthSession({ token, user, mode = 'public' }) {
 
   window.dispatchEvent(new Event('login'));
 }
-
 export function clearAuthSession({ mode = 'all' } = {}) {
   if (typeof window === 'undefined') return;
 

@@ -1,5 +1,7 @@
 "use client";
 
+// Halaman pengaturan sistem
+
 import { useState, useEffect, useCallback } from "react";
 import { apiFetch } from "@/lib/api";
 import { getAuthToken, getPrivateSession } from "@/lib/auth";
@@ -98,6 +100,7 @@ export default function SettingPage() {
     setError(null);
     setSuccess(null);
     try {
+      // Simpan tahun aktif dan biaya pendaftaran secara paralel
       await Promise.all([
         apiFetch(`/api/settings/active_year`, {
           method: 'PUT',
@@ -123,6 +126,7 @@ export default function SettingPage() {
     setError(null);
     setSuccess(null);
     try {
+      // Simpan jadwal gelombang pendaftaran ke backend
       const res = await apiFetch('/api/settings/schedule', {
         method: 'PUT',
         body: JSON.stringify(schedule),
@@ -145,6 +149,7 @@ export default function SettingPage() {
     setError(null);
     setSuccess(null);
     try {
+      // Simpan nama/jabatan panitia, nama/ttd bendahara, dan barcode secara paralel
       await Promise.all([
         apiFetch(`/api/settings/panitia_nama`, {
           method: 'PUT',
@@ -181,6 +186,7 @@ export default function SettingPage() {
     setError(null);
     setSuccess(null);
     try {
+      // Toggle status pendaftaran (buka/tutup) ke backend
       const newValue = !pendaftaranAktif;
       const res = await apiFetch('/api/settings/pendaftaran_aktif', {
         method: 'PUT',

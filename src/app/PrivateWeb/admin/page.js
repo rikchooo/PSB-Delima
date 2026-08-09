@@ -1,5 +1,7 @@
 "use client";
 
+// Dashboard admin
+
 import { useState, useEffect, useRef } from "react";
 import { apiFetch } from "@/lib/api";
 import { getAuthToken, getPrivateSession } from "@/lib/auth";
@@ -16,7 +18,7 @@ const DEFAULT_REGISTRATION_SCHEDULE = {
 };
 
 export default function AdminDashboard() {
-  // State untuk user, data santri, loading, error, search term, status filter, pagination, dropdown, update status
+  // State
   const [user, setUser] = useState(null);
   const [santri, setSantri] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -55,7 +57,7 @@ export default function AdminDashboard() {
   }, []);
 
   useEffect(() => {
-    // Fungsi untuk memeriksa session dan mengambil data santri
+    // Ambil data
     const fetchData = async () => {
       try {
         let parsed;
@@ -108,7 +110,7 @@ export default function AdminDashboard() {
 
         console.log('Fetching from API...');
         
-        // Health check sebelum fetch data utama
+        // Cek backend
         try {
           const healthCheck = await apiFetch('/api/health', {
             method: 'GET',
@@ -140,7 +142,7 @@ export default function AdminDashboard() {
         const registrations = result.data || [];
         console.log('Registrations:', registrations);
 
-        // Mapping data santri untuk keperluan tampilan
+        // Format data
         const mappedSantri = registrations.map((item) => ({ 
           id: item.id_pendaftaran, 
           name: item.nama_lengkap,
@@ -179,7 +181,7 @@ export default function AdminDashboard() {
   }, [router]);
 
   useEffect(() => {
-    // Fungsi untuk menutup dropdown saat klik di luar
+    // Tutup dropdown
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setIsStatusDropdownOpen(false);
@@ -193,6 +195,7 @@ export default function AdminDashboard() {
   }, []);
 
   useEffect(() => {
+    // Muat jadwal pendaftaran tersimpan di localStorage
     const savedSchedule = localStorage.getItem(REGISTRATION_SCHEDULE_KEY);
     if (!savedSchedule) return;
 
@@ -215,6 +218,7 @@ export default function AdminDashboard() {
 
   const handleSaveSchedule = () => {
     localStorage.setItem(REGISTRATION_SCHEDULE_KEY, JSON.stringify(registrationSchedule));
+    // Beri event storage agar halaman lain bisa mendeteksi perubahan
     window.dispatchEvent(new Event("storage"));
     setIsScheduleModalOpen(false);
     alert("✅ Tanggal pendaftaran berhasil diperbarui");
@@ -224,9 +228,9 @@ export default function AdminDashboard() {
   const updateStatus = async (id, newStatus) => {
     setUpdatingId(id);
     setUpdateError(null);
-    
-// Validasi status baru
+
     try {
+      // Kirim PATCH ke backend untuk update status pendaftaran
       const response = await apiFetch(`/api/pendaftaran/santri/${id}/status`, {
         method: 'PATCH',
         body: JSON.stringify({
@@ -239,19 +243,19 @@ export default function AdminDashboard() {
         throw new Error(errorData.message || 'Gagal memperbarui status');
       }
 
-      // Coba parsing response JSON
       const result = await response.json();
-      
-      setSantri(prevSantri => 
-        prevSantri.map(s => 
+
+      // Update state lokal tanpa re-fetch seluruh data
+      setSantri(prevSantri =>
+        prevSantri.map(s =>
           s.id === id ? { ...s, status: newStatus } : s
         )
       );
 
-      // Tampilkan alert sukses
       const statusText = newStatus === 'accepted' ? 'Diterima' : 'Ditolak';
       alert(`✅ Status berhasil diubah menjadi ${statusText}`);
-      
+
+      // Reset filter jika data yang di-update tidak lagi sesuai filter
       if (statusFilter !== 'all' && statusFilter !== newStatus) {
         setStatusFilter('all');
       }
@@ -265,6 +269,7 @@ export default function AdminDashboard() {
   };
 
   const handleDeleteSantri = async (id) => {
+    // Konfirmasi sebelum hapus (soft delete, data tetap di DB untuk arsip)
     const confirmation = confirm('Apakah Anda yakin ingin menghapus data pendaftaran ini?\n\nData akan di-soft delete dan tidak muncul di daftar utama, tetapi tetap disimpan di database untuk arsip.');
     if (!confirmation) return;
 
@@ -278,6 +283,7 @@ export default function AdminDashboard() {
         throw new Error(errorData.error || 'Gagal menghapus data');
       }
 
+      // Hapus dari state lokal tanpa re-fetch
       setSantri(prevSantri => prevSantri.filter(s => s.id !== id));
       alert('✅ Data pendaftaran berhasil dihapus');
     } catch (err) {
@@ -286,11 +292,11 @@ export default function AdminDashboard() {
     }
   };
 
-  // Daftar role untuk dropdown
   const handleStatusChange = (id, newStatus) => {
     const statusText = newStatus === 'accepted' ? 'DITERIMA' : 'DITOLAK';
+    // Konfirmasi perubahan status (tidak bisa dibatalkan)
     const confirmation = confirm(`Apakah Anda yakin ingin mengubah status pendaftaran ini menjadi ${statusText}?\n\nTindakan ini tidak dapat dibatalkan.`);
-    
+
     if (confirmation) {
       updateStatus(id, newStatus);
     }
@@ -301,14 +307,14 @@ export default function AdminDashboard() {
     router.push(`/PrivateWeb/admin/santri/${id}`);
   };
 
-  // Fungsi untuk menangani retry saat terjadi error
+  // Retry
   const handleRetry = () => {
     setLoading(true);
     setError(null);
     window.location.reload();
   };
 
-  // Filter dan cari data santri berdasarkan search term dan status filter
+  // Filter data berdasarkan tahun dan status
   const yearFilteredSantri = activeYear
     ? santri.filter((item) => String(item.tahun_pendaftaran) === activeYear)
     : santri;
@@ -320,7 +326,7 @@ export default function AdminDashboard() {
     return matchesStatus;
   });
 
-  // Page item logic
+  // Pagination logic
   const itemsPerPage = 5;
   const totalPages = Math.ceil(filteredSantri.length / itemsPerPage);
   const paginatedSantri = filteredSantri.slice(
@@ -328,9 +334,10 @@ export default function AdminDashboard() {
     currentPage * itemsPerPage,
   );
 
-  // Statistik 
+  // Statistik kartu dashboard
   const totalSantri = yearFilteredSantri.length;
   const pendingSantri = yearFilteredSantri.filter((s) => s.status === "pending").length;
+  // Diterima + completed dianggap sudah selesai verifikasi
   const acceptedSantri = yearFilteredSantri.filter(
     (s) => s.status === "accepted" || s.status === "completed",
   ).length;

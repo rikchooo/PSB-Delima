@@ -1,5 +1,7 @@
 "use client";
 
+// Halaman bukti pembayaran (kwitansi)
+
 import { useState, useEffect } from "react";
 import { apiFetch } from "@/lib/api";
 import { getAuthToken, getPrivateSession } from "@/lib/auth";
@@ -18,12 +20,14 @@ export default function LaporanPage() {
 
   useEffect(() => {
     const fetchPembayaran = async () => {
+      // Cek autentikasi, redirect ke login jika belum login
       if (!getAuthToken()) {
         router.replace("/PublicWeb/login");
         return;
       }
 
       const id = searchParams.get("id");
+      // Validasi parameter ID pendaftaran dari URL
       if (!id) {
         setLoading(false);
         setError("ID pendaftaran tidak ditemukan");
@@ -31,6 +35,7 @@ export default function LaporanPage() {
       }
 
       try {
+        // Ambil data pembayaran berdasarkan ID pendaftaran
         const paymentRes = await apiFetch(`/api/pembayaran/pendaftaran/${id}`);
         if (!paymentRes.ok) {
           const errText = await paymentRes.text().catch(() => 'Gagal mengambil data pembayaran');
@@ -40,6 +45,7 @@ export default function LaporanPage() {
         const paymentData = paymentResult.data || paymentResult;
         setPembayaran(paymentData);
 
+        // Ambil biaya dari settings, fallback ke nominal dari data pembayaran
         let biayaValue = 0;
         try {
           const settingsRes = await apiFetch('/api/settings');
@@ -113,6 +119,7 @@ export default function LaporanPage() {
   };
 
   const getStatusLabel = (status) => {
+    // Map status pembayaran backend ke label yang mudah dibaca
     if (!status) return "Belum Bayar";
     switch (status) {
       case "submitted":
@@ -130,7 +137,7 @@ export default function LaporanPage() {
   };
 
   const nominal = biaya || pembayaran.nominal || 0;
-  const terbilang = (() => {
+  // Fungsi terbilang untuk nominal rupiah
     const bilangan = [
       "",
       "Satu",

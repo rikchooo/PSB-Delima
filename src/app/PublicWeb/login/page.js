@@ -1,5 +1,7 @@
 'use client';
 
+// Halaman login publik
+
 import Image from 'next/image';
 import { apiFetch } from "@/lib/api";
 import { setAuthSession } from "@/lib/auth";
@@ -21,6 +23,7 @@ export default function LoginPage() {
   const handleChange = (e) =>
     setFormData({ ...formData, [e.target.name]: e.target.value });
 
+  // Submit form
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -42,6 +45,7 @@ export default function LoginPage() {
 
       if (!res.ok) {
         let message = data.error || 'Login gagal';
+        // Jika user mencoba akses halaman private dari login publik, beri petunjuk
         if (res.status === 403 && message.includes('halaman private')) {
           message = message + ' Gunakan ' + (document.baseURI || window.location.origin) + 'PrivateWeb/login';
         }
@@ -56,6 +60,7 @@ export default function LoginPage() {
         return;
       }
 
+      // Simpan sesi publik (mode: public untuk akses halaman publik)
       setAuthSession({ token: data.token, user: data.user, mode: 'public' });
 
       alert('Login berhasil!');
