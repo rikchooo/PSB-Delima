@@ -34,14 +34,15 @@ export async function apiFetch(path, options = {}) {
   });
 
   if (response.status === 401 && typeof window !== 'undefined') {
-    const path = window.location.pathname;
-    const isPrivatePath = path.includes('/PrivateWeb');
+    const currentPath = window.location.pathname;
+    const isPrivatePath = currentPath.includes('/PrivateWeb');
     const isLoginPage =
-      path.includes('/PrivateWeb/login') || path.includes('/PublicWeb/login');
+      currentPath.includes('/PrivateWeb/login') || currentPath.includes('/PublicWeb/login');
 
     if (!isLoginPage) {
       clearAuthSession({ mode: isPrivatePath ? 'private' : 'public' });
       window.location.href = isPrivatePath ? '/PrivateWeb/login' : '/PublicWeb/login';
+      throw new Error('Sesi berakhir. Silakan login kembali.');
     }
   }
 

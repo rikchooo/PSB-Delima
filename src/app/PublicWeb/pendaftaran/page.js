@@ -362,7 +362,7 @@ export default function PendaftaranSantri() {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-8">
-          <section className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+          <section className="bg-white rounded-2xl shadow-sm border border-gray-200">
             <div className="px-6 py-5 border-b border-gray-200">
               <div className="flex items-center">
                 <div>
@@ -544,7 +544,7 @@ export default function PendaftaranSantri() {
             </div>
           </section>
 
-          <section className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+          <section className="bg-white rounded-2xl shadow-sm border border-gray-200">
             <div className="px-6 py-5 border-b border-gray-200">
               <div className="flex items-center">
                 <div>
@@ -686,7 +686,7 @@ export default function PendaftaranSantri() {
             </div>
           </section>
 
-          <section className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+          <section className="bg-white rounded-2xl shadow-sm border border-gray-200">
             <div className="px-6 py-5 border-b border-gray-200">
               <div className="flex items-center">
                 <div>

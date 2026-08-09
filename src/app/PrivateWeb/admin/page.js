@@ -264,6 +264,28 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleDeleteSantri = async (id) => {
+    const confirmation = confirm('Apakah Anda yakin ingin menghapus data pendaftaran ini?\n\nData akan di-soft delete dan tidak muncul di daftar utama, tetapi tetap disimpan di database untuk arsip.');
+    if (!confirmation) return;
+
+    try {
+      const response = await apiFetch(`/api/pendaftaran/santri/${id}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Gagal menghapus data');
+      }
+
+      setSantri(prevSantri => prevSantri.filter(s => s.id !== id));
+      alert('✅ Data pendaftaran berhasil dihapus');
+    } catch (err) {
+      console.error('Error deleting santri:', err);
+      alert(`❌ Gagal menghapus data: ${err.message || 'Silakan coba lagi'}`);
+    }
+  };
+
   // Daftar role untuk dropdown
   const handleStatusChange = (id, newStatus) => {
     const statusText = newStatus === 'accepted' ? 'DITERIMA' : 'DITOLAK';
@@ -688,6 +710,16 @@ export default function AdminDashboard() {
                                 </button>
                               </>
                             )}
+
+                            <button
+                              onClick={() => handleDeleteSantri(santri.id)}
+                              className="p-1.5 rounded hover:bg-red-100 transition-colors"
+                              title="Hapus Data"
+                            >
+                              <svg className="w-5 h-5 sm:w-6 sm:h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            </button>
                           </div>
                         </td>
                       </tr>

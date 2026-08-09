@@ -112,6 +112,27 @@ export default function SantriDetail() {
     }
   };
 
+  const handleDelete = async () => {
+    const confirmation = confirm('Apakah Anda yakin ingin menghapus data pendaftaran ini?\n\nData akan di-soft delete dan tetap disimpan di database untuk arsip.');
+    if (!confirmation) return;
+
+    try {
+      const res = await apiFetch(`/api/pendaftaran/santri/${params.id}`, {
+        method: 'DELETE',
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Gagal menghapus data');
+      }
+
+      alert('Data pendaftaran berhasil dihapus');
+      router.push('/PrivateWeb/admin');
+    } catch (err) {
+      alert(`Gagal menghapus data: ${err.message}`);
+    }
+  };
+
   const updatePaymentStatus = async (newStatus) => {
     if (!pembayaran?.id) return;
     try {
@@ -185,9 +206,10 @@ export default function SantriDetail() {
 
       <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         <header className="mb-6 sm:mb-8">
+
           <button
-            onClick={handleBack}
-            className="flex items-center text-gray-700 hover:text-green-600 mb-4 sm:mb-6 transition-colors duration-300 group"
+            onClick={handleDelete}
+            className="flex items-center text-red-600 hover:text-red-700 mb-4 sm:mb-6 transition-colors duration-300 group"
           >
             <svg 
               className="w-5 h-5 sm:w-6 sm:h-6 mr-2" 
@@ -195,9 +217,9 @@ export default function SantriDetail() {
               stroke="currentColor" 
               viewBox="0 0 24 24"
             >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
             </svg>
-            <span className="font-semibold text-base sm:text-lg">Kembali</span>
+            <span className="font-semibold text-base sm:text-lg">Hapus Data</span>
           </button>
           
           <article className="bg-white rounded-xl sm:rounded-2xl shadow-lg sm:shadow-xl p-4 sm:p-6 md:p-8">
@@ -367,12 +389,6 @@ export default function SantriDetail() {
                     </p>
                   </div>
                 </div>
-                {pembayaran.bukti_pembayaran && (
-                  <div className="bg-gray-50 rounded-lg p-3 sm:p-4 border border-gray-100">
-                    <p className="text-xs sm:text-sm text-gray-500 mb-1">Bukti Pembayaran</p>
-                    <a href={pembayaran.bukti_pembayaran} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline text-sm">Lihat Bukti</a>
-                  </div>
-                )}
                 {pembayaran.status_pembayaran === 'submitted' && (
                   <div className="flex flex-wrap gap-2">
                     <button

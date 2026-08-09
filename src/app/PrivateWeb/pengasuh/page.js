@@ -97,11 +97,7 @@ export default function PengasuhDashboard() {
           (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
         );
 
-        const yearFilteredData = activeYearRef.current
-          ? mappedData.filter(item => String(item.tahun_pendaftaran) === activeYearRef.current)
-          : mappedData;
-
-        setSantri(yearFilteredData);
+        setSantri(mappedData);
       } catch (err) {
         console.error("Error fetching data:", err);
         setError(err.message);
@@ -146,8 +142,12 @@ export default function PengasuhDashboard() {
     };
   }, []);
 
-  const filteredSantri = Array.isArray(santri)
-    ? santri.filter((s) => {
+  const yearFilteredSantri = activeYear
+    ? santri.filter(item => String(item.tahun_pendaftaran) === activeYear)
+    : santri;
+
+  const filteredSantri = Array.isArray(yearFilteredSantri)
+    ? yearFilteredSantri.filter((s) => {
         const matchesSearch =
           (s.name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
           (s.email || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -177,22 +177,22 @@ export default function PengasuhDashboard() {
     currentPage * itemsPerPage,
   );
 
-  const totalSantri = Array.isArray(santri) ? santri.length : 0;
-  const sudahSantri = Array.isArray(santri)
-    ? santri.filter((s) => s.status === "accepted" || s.status === "completed")
+  const totalSantri = Array.isArray(yearFilteredSantri) ? yearFilteredSantri.length : 0;
+  const sudahSantri = Array.isArray(yearFilteredSantri)
+    ? yearFilteredSantri.filter((s) => s.status === "accepted" || s.status === "completed")
         .length
     : 0;
-  const sudahUji = Array.isArray(santri)
-    ? santri.filter((s) => s.quranScore > 0 || s.kitabScore > 0).length
+  const sudahUji = Array.isArray(yearFilteredSantri)
+    ? yearFilteredSantri.filter((s) => s.quranScore > 0 || s.kitabScore > 0).length
     : 0;
 
   const paymentStats = useMemo(() => {
-    if (!Array.isArray(santri)) return { sudahBayar: 0, menungguKonfirmasi: 0, totalNominalTerbayar: 0 };
+    if (!Array.isArray(yearFilteredSantri)) return { sudahBayar: 0, menungguKonfirmasi: 0, totalNominalTerbayar: 0 };
     const verified = ["lunas", "confirmed", "success"];
     let sudahBayar = 0;
     let menungguKonfirmasi = 0;
     let totalNominalTerbayar = 0;
-    for (const s of santri) {
+    for (const s of yearFilteredSantri) {
       if (verified.includes(s.paymentStatus)) {
         sudahBayar++;
         totalNominalTerbayar += s.paymentAmount || 0;
@@ -201,7 +201,7 @@ export default function PengasuhDashboard() {
       }
     }
     return { sudahBayar, menungguKonfirmasi, totalNominalTerbayar };
-  }, [santri]);
+  }, [yearFilteredSantri]);
 
   const totalNominalTerbayar = paymentStats.totalNominalTerbayar;
   const sudahBayar = paymentStats.sudahBayar;

@@ -77,14 +77,17 @@ export default function ProfilPage() {
           throw new Error(`HTTP error! status: ${statusResponse.status}`);
         }
         const data = await statusResponse.json();
+
         if (data.status) {
           setRegistrationStatus(data.status);
           localStorage.setItem('registration_status', data.status);
         }
-        if (data.payment_status) {
-          setPaymentStatus(data.payment_status);
-          localStorage.setItem('payment_status', data.payment_status);
-        }
+
+        const normalizedPaymentStatus = data.payment_status && ['pending', 'submitted', 'confirmed', 'lunas', 'success', 'rejected', 'cancelled'].includes(data.payment_status)
+          ? data.payment_status
+          : 'pending';
+        setPaymentStatus(normalizedPaymentStatus);
+        localStorage.setItem('payment_status', normalizedPaymentStatus);
 
         const paymentResponse = await apiFetch(`/api/pembayaran/email/${encodeURIComponent(user.email)}`);
         if (paymentResponse.ok) {
@@ -92,6 +95,9 @@ export default function ProfilPage() {
           if (paymentResult.data) {
             setPaymentData(paymentResult.data);
             localStorage.setItem(`payment_data_${user.email}`, JSON.stringify(paymentResult.data));
+          } else {
+            setPaymentData(null);
+            localStorage.removeItem(`payment_data_${user.email}`);
           }
         } else if (paymentResponse.status !== 404) {
           const errText = await paymentResponse.text().catch(() => 'Unknown error');

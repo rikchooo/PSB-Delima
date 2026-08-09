@@ -36,6 +36,13 @@ export default function PengujiDashboard() {
           return;
         }
 
+        const healthCheck = await apiFetch('/api/health', {
+          method: 'GET',
+        });
+        if (!healthCheck.ok) {
+          throw new Error('Backend server is not responding properly');
+        }
+
         const [santriResponse, nilaiResponse, settingsResponse] = await Promise.all([
           apiFetch('/api/pendaftaran/santri'),
           apiFetch('/api/pengujian/santri'),
@@ -43,7 +50,13 @@ export default function PengujiDashboard() {
         ]);
 
         if (!santriResponse.ok) {
-          throw new Error('Failed to fetch santri data');
+          if (santriResponse.status === 401) {
+            router.replace('/PrivateWeb/login');
+            return;
+          }
+          const errorText = await santriResponse.text().catch(() => 'Unknown error');
+          console.error('API Error:', santriResponse.status, errorText);
+          throw new Error(`Gagal memuat data santri (status: ${santriResponse.status})`);
         }
 
         const santriResult = await santriResponse.json();
@@ -81,11 +94,7 @@ export default function PengujiDashboard() {
           (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
         );
 
-        const yearFilteredData = activeYearRef.current
-          ? mappedData.filter(item => String(item.tahun_pendaftaran) === activeYearRef.current)
-          : mappedData;
-
-        setSantri(yearFilteredData);
+        setSantri(mappedData);
       } catch (err) {
         console.error('Error fetching data:', err);
         setError(err.message);
@@ -101,7 +110,11 @@ export default function PengujiDashboard() {
     router.push(`/PrivateWeb/penguji/nilai/${santriId}`);
   };
 
-  const filteredSantri = santri.filter((s) => {
+  const yearFilteredSantri = activeYear
+    ? santri.filter(item => String(item.tahun_pendaftaran) === activeYear)
+    : santri;
+
+  const filteredSantri = yearFilteredSantri.filter((s) => {
     const matchesSearch =
       s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       s.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -115,8 +128,8 @@ export default function PengujiDashboard() {
     return false;
   });
 
-  const totalSantri = santri.length;
-  const completedTests = santri.filter(s => s.hasNilai).length;
+  const totalSantri = yearFilteredSantri.length;
+  const completedTests = yearFilteredSantri.filter(s => s.hasNilai).length;
   const pendingTests = totalSantri - completedTests;
 
   if (error) {
