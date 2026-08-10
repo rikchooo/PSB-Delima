@@ -1,14 +1,10 @@
 "use client";
-
-// Halaman laporan santri diterima
-
 import { useState, useEffect } from "react";
 import { apiFetch } from "@/lib/api";
 import { getAuthToken, getPrivateSession } from "@/lib/auth";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import "@/styles/globals.css";
-
 export default function LaporanPage() {
   const [santri, setSantri] = useState([]);
   const [error, setError] = useState(null);
@@ -16,7 +12,6 @@ export default function LaporanPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const yearParam = searchParams.get("year");
-
   const kopSurat = {
     nama: "PONDOK PESANTREN DELIMA TJR CANGKRENG",
     arab: "المعْهد الدّيْنى دليْما تنْجُنا رَجاء",
@@ -24,39 +19,30 @@ export default function LaporanPage() {
     sk: "Nomor SK. KEMENKUMHAM : AHU-0008815.AH.01.04.Tahun 2023",
     alamat: "Sekretariat : Jl. Cangkreng, Dusun Utara Pasar – Desa Mangaran – Kec. Mangaran – Situbondo (68363)",
   };
-
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Cek autentikasi dan role admin
         if (!getAuthToken()) {
           router.replace("/PrivateWeb/login");
           return;
         }
-
         const session = getPrivateSession();
         if (!session || session.role !== "admin") {
           router.replace("/PrivateWeb/login");
           return;
         }
-
-        // Ambil settings dan data santri secara paralel
         const [settingsRes, santriRes] = await Promise.all([
           apiFetch('/api/settings'),
           apiFetch('/api/pendaftaran/santri'),
         ]);
-
         if (settingsRes.ok) {
           const settingsData = await settingsRes.json();
           setSettings(settingsData.data || {});
         }
-
         if (!santriRes.ok) {
           throw new Error('Failed to fetch santri data');
         }
         const santriResult = await santriRes.json();
-
-        // Filter santri accepted/completed, optional filter by year param
         const data = (santriResult.data || [])
           .filter((x) => {
             if (x.status !== "accepted" && x.status !== "completed") return false;
@@ -81,35 +67,27 @@ export default function LaporanPage() {
             ibu: item.nama_ibu,
             telp: item.telp_ayah,
           }));
-
         setSantri(data);
       } catch (err) {
         setError(err.message);
       }
     };
-
     fetchData();
   }, [router, yearParam]);
-
   const handlePrint = () => {
     window.print();
   };
-
   const handleBack = () => {
-    // Kembali ke halaman sebelumnya atau ke dashboard admin
     if (window.history.length > 1) {
       router.back();
     } else {
       router.push("/PrivateWeb/admin");
     }
   };
-
   if (error) return <div>Error: {error}</div>;
-
   const currentYear = settings.active_year || new Date().getFullYear();
   const namaPanitia = settings.panitia_nama || "Nama Panitia";
   const jabatanPanitia = settings.panitia_jabatan || "Panitia PSB";
-
   return (
     <div className="report-page-wrapper">
       <div className="no-print fixed top-6 right-6 z-50 flex flex-col gap-3">
@@ -132,7 +110,6 @@ export default function LaporanPage() {
           <span className="font-medium">Cetak</span>
         </button>
       </div>
-
       <div className="a4-page">
         <div className="kop-surat-wrapper relative">
           <div className="logo-container absolute -left-12 -top-4 w-36 h-36 z-0">
@@ -143,38 +120,30 @@ export default function LaporanPage() {
               className="object-contain"
             />
           </div>
-
           <div className="relative z-10 kop-surat">
             <div className="flex items-center justify-between">
               <div className="w-24 flex-shrink-0"></div>
-
               <div className="text-center flex-1 leading-tight">
                 <h1 className="nama-pondok">
                   {kopSurat.nama}
                 </h1>
-
                 <p className="arabic-name">
                   {kopSurat.arab}
                 </p>
-
                 <p className="yayasan">
                   {`"${kopSurat.yayasan}"`}
                 </p>
-
                 <p className="sk-kemenkumham mt-1">
                   {kopSurat.sk}
                 </p>
-
                 <p className="sekretariat1">
                   {kopSurat.alamat}
                 </p>
               </div>
-
               <div className="w-24 flex-shrink-0"></div>
             </div>
           </div>
         </div>
-
         <div className="text-center mb-4">
           <h2 className="font-bold text-[14px]">
             LAPORAN PENDAFTARAN SANTRI BARU
@@ -186,7 +155,6 @@ export default function LaporanPage() {
             }
           </p>
         </div>
-
         <table className="w-full border border-black text-[11px] border-collapse">
           <thead>
             <tr className="bg-gray-200 text-center">
@@ -229,7 +197,6 @@ export default function LaporanPage() {
             )}
           </tbody>
         </table>
-
         <div className="mt-8 flex justify-end">
           <div className="text-center w-64">
             <p>Situbondo, {new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}</p>

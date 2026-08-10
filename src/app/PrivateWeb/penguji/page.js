@@ -1,7 +1,4 @@
 "use client";
-
-// Dashboard penguji
-
 import { useState, useEffect, useRef } from "react";
 import { apiFetch } from "@/lib/api";
 import { getAuthToken, getPrivateSession } from "@/lib/auth";
@@ -9,7 +6,6 @@ import { useRouter } from "next/navigation";
 import '@/styles/globals.css';
 import PrivateHeader from "@/components/PrivateHeader";
 import { HiUserGroup, HiCheckCircle, HiClock, HiSearch, HiUser } from "react-icons/hi";
-
 export default function PengujiDashboard() {
   const [activeTab, setActiveTab] = useState("jadwal");
   const [searchTerm, setSearchTerm] = useState("");
@@ -19,41 +15,32 @@ export default function PengujiDashboard() {
   const [activeYear, setActiveYear] = useState("");
   const router = useRouter();
   const activeYearRef = useRef(activeYear);
-
   useEffect(() => {
     activeYearRef.current = activeYear;
   }, [activeYear]);
-
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Cek autentikasi dan role penguji
         if (!getAuthToken()) {
           router.replace("/PrivateWeb/login");
           return;
         }
-
         const parsed = getPrivateSession();
         if (!parsed || parsed.role !== "penguji") {
           router.replace("/PrivateWeb/login");
           return;
         }
-
-        // Health check backend
         const healthCheck = await apiFetch('/api/health', {
           method: 'GET',
         });
         if (!healthCheck.ok) {
           throw new Error('Backend server is not responding properly');
         }
-
-        // Ambil data santri, nilai, dan settings secara paralel
         const [santriResponse, nilaiResponse, settingsResponse] = await Promise.all([
           apiFetch('/api/pendaftaran/santri'),
           apiFetch('/api/pengujian/santri'),
           apiFetch('/api/settings')
         ]);
-
         if (!santriResponse.ok) {
           if (santriResponse.status === 401) {
             router.replace('/PrivateWeb/login');
@@ -63,27 +50,18 @@ export default function PengujiDashboard() {
           console.error('API Error:', santriResponse.status, errorText);
           throw new Error(`Gagal memuat data santri (status: ${santriResponse.status})`);
         }
-
         const santriResult = await santriResponse.json();
         const nilaiResult = nilaiResponse.ok ? await nilaiResponse.json() : { data: [] };
-
         if (settingsResponse.ok) {
           const settingsJson = await settingsResponse.json();
           if (settingsJson.data?.active_year) {
             setActiveYear(settingsJson.data.active_year);
           }
         }
-
         const allData = santriResult.data || [];
         const nilaiData = nilaiResult.data || [];
-
-        // Cek santri yang sudah dinilai berdasarkan id_pendaftaran
         const nilaiIds = new Set(nilaiData.map(item => item.id_pendaftaran));
-
-        // Filter santri dengan status accepted/completed
         const acceptedSantri = allData.filter(item => item.status === 'accepted' || item.status === 'completed');
-
-        // Transformasi data API ke format yang digunakan tabel
         const mappedData = acceptedSantri.map((item) => ({
           id: item.id_pendaftaran,
           name: item.nama_lengkap,
@@ -97,12 +75,9 @@ export default function PengujiDashboard() {
           tahun_pendaftaran: item.tahun_pendaftaran,
           createdAt: item.created_at,
         }));
-
-        // Urutkan dari yang terbaru
         mappedData.sort(
           (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
         );
-
         setSantri(mappedData);
       } catch (err) {
         console.error('Error fetching data:', err);
@@ -111,25 +86,19 @@ export default function PengujiDashboard() {
         setLoading(false);
       }
     };
-
     fetchData();
   }, [router]);
-
   const handleInputNilai = (santriId) => {
     router.push(`/PrivateWeb/penguji/nilai/${santriId}`);
   };
-
   const yearFilteredSantri = activeYear
     ? santri.filter(item => String(item.tahun_pendaftaran) === activeYear)
     : santri;
-
-  // Filter berdasarkan tab aktif dan kata pencarian
   const filteredSantri = yearFilteredSantri.filter((s) => {
     const matchesSearch =
       s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       s.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
       s.phone.includes(searchTerm);
-
     if (activeTab === "jadwal") {
       return matchesSearch;
     } else if (activeTab === "semua") {
@@ -137,12 +106,9 @@ export default function PengujiDashboard() {
     }
     return false;
   });
-
   const totalSantri = yearFilteredSantri.length;
-  // Hitung tes yang sudah selesai berdasarkan flag hasNilai
   const completedTests = yearFilteredSantri.filter(s => s.hasNilai).length;
   const pendingTests = totalSantri - completedTests;
-
   if (error) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
@@ -167,11 +133,9 @@ export default function PengujiDashboard() {
       </div>
     );
   }
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       <PrivateHeader />
-
       <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {activeYear && (
           <div className="mb-6 inline-flex items-center px-4 py-2 bg-green-50 border border-green-200 rounded-lg">
@@ -184,7 +148,6 @@ export default function PengujiDashboard() {
           <h2 id="stats-heading" className="sr-only">
             Statistik Tes Santri
           </h2>
-
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-blue-500 hover:shadow-xl transition-shadow">
               <div className="flex items-center justify-between">
@@ -202,7 +165,6 @@ export default function PengujiDashboard() {
                 </div>
               </div>
             </div>
-
             <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-green-500 hover:shadow-xl transition-shadow">
               <div className="flex items-center justify-between">
                 <div>
@@ -219,7 +181,6 @@ export default function PengujiDashboard() {
                 </div>
               </div>
             </div>
-
             <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-yellow-500 hover:shadow-xl transition-shadow">
               <div className="flex items-center justify-between">
                 <div>
@@ -238,7 +199,6 @@ export default function PengujiDashboard() {
             </div>
           </div>
         </section>
-
         <section aria-labelledby="schedule-heading" className="mb-8">
           <div className="bg-white rounded-xl shadow-lg overflow-hidden">
             <div className="px-6 py-4 border-b border-gray-200">
@@ -246,7 +206,6 @@ export default function PengujiDashboard() {
                 Data Santri
               </h3>
             </div>
-
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">

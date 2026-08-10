@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* RESET */
+/* Reset */
 * {
   margin: 0;
   padding: 0;
@@ -40,7 +40,7 @@ code {
   background: #555;
 }
 
-/* Animasi */
+/* Animations */
 @keyframes zoomInOut {
 
   0%,
@@ -107,9 +107,7 @@ code {
   animation: fadeInUp 0.6s ease-out forwards;
 }
 
-/* ========================= */
-/* KHUSUS HALAMAN LAPORAN */
-/* ========================= */
+/* Report page section */
 
 .report-page-wrapper {
   background: #525659;
@@ -129,9 +127,7 @@ code {
   position: relative;
 }
 
-/* ========================= */
-/* KOP SURAT (KHUSUS LAPORAN) */
-/* ========================= */
+/* Letterhead section */
 
 .report-page-wrapper .kop-surat {
   position: relative;
@@ -174,7 +170,7 @@ code {
   font-size: 10pt;
 }
 
-/* Garis kop */
+/* Letterhead line */
 .report-page-wrapper .kop-surat::before {
   content: "";
   position: absolute;
@@ -194,9 +190,7 @@ code {
   border-bottom: 3px solid black;
 }
 
-/* ========================= */
-/* TABEL KHUSUS LAPORAN */
-/* ========================= */
+/* Report table styles */
 
 .report-page-wrapper table {
   font-family: 'Times New Roman', Times, serif;
@@ -228,9 +222,7 @@ code {
   border: 0.5px solid black;
 }
 
-/* ========================= */
-/* PRINT KHUSUS LAPORAN */
-/* ========================= */
+/* Print styles */
 
 @media print {
 
@@ -291,7 +283,7 @@ code {
   }
 }
 
-/* Responsif Mobile Laporan */
+/* Mobile responsive */
 @media screen and (max-width: 768px) {
   .report-page-wrapper {
     overflow-x: auto;
@@ -333,9 +325,7 @@ code {
 
 }
 
-/* ========================= */
-/* KHUSUS HALAMAN KWITANSI */
-/* ========================= */
+/* Kwitansi section */
 
 .kwitansi-wrapper {
   background: #525659;

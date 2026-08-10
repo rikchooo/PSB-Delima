@@ -1,7 +1,4 @@
 "use client";
-
-// Dashboard pengasuh
-
 import { useState, useEffect, useRef, useMemo } from "react";
 import { apiFetch } from "@/lib/api";
 import { getAuthToken, getPrivateSession } from "@/lib/auth";
@@ -9,7 +6,6 @@ import { useRouter } from "next/navigation";
 import PrivateHeader from "@/components/PrivateHeader";
 import { HiUserGroup, HiCheckCircle, HiCurrencyDollar, HiInbox, HiChartBar, HiClipboard, HiEye, HiX, HiClock, HiCheck } from "react-icons/hi";
 import "@/styles/globals.css";
-
 export default function PengasuhDashboard() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
@@ -24,43 +20,33 @@ export default function PengasuhDashboard() {
   const [activeYear, setActiveYear] = useState("");
   const router = useRouter();
   const activeYearRef = useRef(activeYear);
-
   useEffect(() => {
     activeYearRef.current = activeYear;
   }, [activeYear]);
-
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Cek autentikasi dan role pengasuh
         if (!getAuthToken()) {
           router.replace("/PrivateWeb/login");
           return;
         }
-
         const parsed = getPrivateSession();
         if (!parsed || parsed.role !== "pengasuh") {
           router.replace("/PrivateWeb/login");
           return;
         }
-
-        // Ambil data santri dan settings secara paralel
         const [response, settingsResponse] = await Promise.all([
           apiFetch('/api/pengasuh/santri'),
           apiFetch('/api/settings')
         ]);
-
         if (!response.ok) throw new Error("Failed to fetch data");
         const result = await response.json();
-
         if (settingsResponse.ok) {
           const settingsJson = await settingsResponse.json();
           if (settingsJson.data?.active_year) {
             setActiveYear(settingsJson.data.active_year);
           }
         }
-
-        // Transformasi data API ke format yang digunakan tabel
         const mappedData = (result.data || []).map((item) => {
           const levelAlquran = item.level_alquran || "-";
           const levelKitab = item.level_kitab || "-";
@@ -97,11 +83,9 @@ export default function PengasuhDashboard() {
             tahun_pendaftaran: item.tahun_pendaftaran,
           };
         });
-
         mappedData.sort(
           (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
         );
-
         setSantri(mappedData);
       } catch (err) {
         console.error("Error fetching data:", err);
@@ -110,11 +94,8 @@ export default function PengasuhDashboard() {
         setLoading(false);
       }
     };
-
     fetchData();
   }, [router]);
-
-  // Ambil biaya pendaftaran berdasarkan tahun aktif
   useEffect(() => {
     const fetchSettings = async () => {
       try {
@@ -132,27 +113,21 @@ export default function PengasuhDashboard() {
         console.error('Failed to fetch settings/biaya', err);
       }
     };
-
     fetchSettings();
   }, []);
-
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
       }
     };
-
     document.addEventListener("mousedown", handleClickOutside);
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
-
   const yearFilteredSantri = activeYear
     ? santri.filter(item => String(item.tahun_pendaftaran) === activeYear)
     : santri;
-
-  // Filter berdasarkan kata pencarian dan status pendaftaran
   const filteredSantri = Array.isArray(yearFilteredSantri)
     ? yearFilteredSantri.filter((s) => {
         const matchesSearch =
@@ -164,7 +139,6 @@ export default function PengasuhDashboard() {
             .includes(searchTerm.toLowerCase()) ||
           (s.address || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
           (s.school || "").toLowerCase().includes(searchTerm.toLowerCase());
-
         const matchesStatus =
           filterStatus === "all" ||
           (filterStatus === "sudah" &&
@@ -172,32 +146,25 @@ export default function PengasuhDashboard() {
           (filterStatus === "belum" &&
             s.status !== "accepted" &&
             s.status !== "completed");
-
         return matchesSearch && matchesStatus;
       })
     : [];
-
   const itemsPerPage = 10;
   const totalPages = Math.ceil(filteredSantri.length / itemsPerPage);
   const paginatedSantri = filteredSantri.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage,
   );
-
   const totalSantri = Array.isArray(yearFilteredSantri) ? yearFilteredSantri.length : 0;
   const sudahSantri = Array.isArray(yearFilteredSantri)
     ? yearFilteredSantri.filter((s) => s.status === "accepted" || s.status === "completed")
         .length
     : 0;
-  // Hitung santri yang sudah diuji (memiliki nilai)
   const sudahUji = Array.isArray(yearFilteredSantri)
     ? yearFilteredSantri.filter((s) => s.quranScore > 0 || s.kitabScore > 0).length
     : 0;
-
-  // Hitung statistik pembayaran
   const paymentStats = useMemo(() => {
     if (!Array.isArray(yearFilteredSantri)) return { sudahBayar: 0, menungguKonfirmasi: 0, totalNominalTerbayar: 0 };
-    // Pembayaran dianggap verified jika statusnya lunas/confirmed/success
     const verified = ["lunas", "confirmed", "success"];
     let sudahBayar = 0;
     let menungguKonfirmasi = 0;
@@ -212,13 +179,10 @@ export default function PengasuhDashboard() {
     }
     return { sudahBayar, menungguKonfirmasi, totalNominalTerbayar };
   }, [yearFilteredSantri]);
-
   const totalNominalTerbayar = paymentStats.totalNominalTerbayar;
   const sudahBayar = paymentStats.sudahBayar;
   const menungguKonfirmasi = paymentStats.menungguKonfirmasi;
-
   const getActivityStatus = (s) => {
-    // Tentukan status aktivitas santri untuk tampilan
     const hasExam = s.quranScore > 0 || s.kitabScore > 0;
     const isPaymentVerified = s.paymentStatus === "lunas" || s.paymentStatus === "confirmed" || s.paymentStatus === "success";
     if (s.status === "completed" && hasExam && isPaymentVerified) return "completed";
@@ -227,9 +191,7 @@ export default function PengasuhDashboard() {
     if (s.status === "accepted" || s.status === "completed") return "accepted";
     return "pending";
   };
-
   const getActivityLabel = (status) => {
-    // Label aktivitas untuk tampilan timeline
     switch (status) {
       case "examined": return "Nilai telah dimasukkan";
       case "paid": return "Pembayaran diverifikasi";
@@ -238,9 +200,7 @@ export default function PengasuhDashboard() {
       default: return "Menunggu";
     }
   };
-
   const getActivityIcon = (status) => {
-    // Icon sesuai status aktivitas
     switch (status) {
       case "examined": return <HiClipboard className="w-5 h-5 text-blue-600" />;
       case "paid": return <HiCurrencyDollar className="w-5 h-5 text-green-600" />;
@@ -249,16 +209,12 @@ export default function PengasuhDashboard() {
       default: return <HiClock className="w-5 h-5 text-yellow-600" />;
     }
   };
-
   const [biayaDetail, setBiayaDetail] = useState(0);
-
   const openDetail = async (s) => {
     setSelectedSantri(s);
     setIsDetailOpen(true);
     setBiayaDetail(0);
-
     try {
-      // Ambil detail biaya tahun pendaftaran santri saat modal dibuka
       const year = activeYear || new Date(s.acceptedDate || s.createdAt).getFullYear().toString();
       const res = await apiFetch(`/api/settings/biaya/${year}`);
       if (res.ok) {
@@ -269,7 +225,6 @@ export default function PengasuhDashboard() {
       console.error('Failed to fetch detail biaya', err);
     }
   };
-
   if (error) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
@@ -306,11 +261,9 @@ export default function PengasuhDashboard() {
       </div>
     );
   }
-
   return (
     <div className="min-h-screen bg-white">
       <PrivateHeader />
-
       <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {activeYear && (
           <div className="mb-6 inline-flex items-center px-4 py-2 bg-green-50 border border-green-200 rounded-lg">
@@ -337,7 +290,6 @@ export default function PengasuhDashboard() {
                 </div>
               </div>
             </div>
-
             <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-green-500 hover:shadow-xl transition-shadow">
               <div className="flex items-center justify-between">
                 <div>
@@ -356,7 +308,6 @@ export default function PengasuhDashboard() {
                 </div>
               </div>
             </div>
-
             <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-purple-500 hover:shadow-xl transition-shadow">
               <div className="flex items-center justify-between">
                 <div>
@@ -375,7 +326,6 @@ export default function PengasuhDashboard() {
                 </div>
               </div>
             </div>
-
             <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-yellow-500 hover:shadow-xl transition-shadow">
               <div className="flex items-center justify-between">
                 <div>
@@ -394,7 +344,6 @@ export default function PengasuhDashboard() {
             </div>
           </div>
         </section>
-
         <section aria-labelledby="exam-results-heading" className="mb-8">
           <div className="bg-white rounded-xl shadow-lg overflow-hidden">
             <div className="px-6 py-4 border-b border-gray-200">
@@ -461,8 +410,7 @@ export default function PengasuhDashboard() {
               </div>
             )}
           </div>
-
-          {/* Page item */}
+          {/* Pagination */}
           <div className="px-4 sm:px-6 py-3 sm:py-4 border-t border-gray-200">
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
               <div className="text-[11px] sm:text-sm text-gray-600 text-center sm:text-left">
@@ -517,7 +465,6 @@ export default function PengasuhDashboard() {
             </div>
           </div>
         </section>
-
         <section aria-labelledby="activity-heading">
           <div className="bg-white rounded-xl shadow-lg overflow-hidden">
             <div className="px-6 py-4 border-b border-gray-200">
@@ -592,7 +539,6 @@ export default function PengasuhDashboard() {
           </div>
         </section>
       </main>
-
       {isDetailOpen && selectedSantri && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 px-4">
           <div className="w-full max-w-3xl bg-white rounded-xl shadow-xl overflow-hidden max-h-[90vh] overflow-y-auto">

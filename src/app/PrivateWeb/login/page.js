@@ -1,7 +1,4 @@
 "use client";
-
-// Halaman login private (panitia/penguji/pengasuh)
-
 import Image from 'next/image';
 import { apiFetch } from "@/lib/api";
 import { setAuthSession } from "@/lib/auth";
@@ -9,7 +6,6 @@ import "@/styles/globals.css";
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Mail, Eye, EyeOff, ArrowRight, Users, Pen, UserCircle, ChevronDown } from 'lucide-react';
-
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -19,70 +15,52 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
-
-  // Daftar role yang tersedia
   const roles = [
     { key: "admin", label: "Panitia", icon: Users },
     { key: "penguji", label: "Penguji", icon: Pen },
     { key: "pengasuh", label: "Pengasuh", icon: UserCircle },
   ];
-
-  // Teks dropdown role
   const getRoleDisplayText = () => {
     if (!role) return "Pilih Role Anda";
     const selectedRole = roles.find((r) => r.key === role);
     return selectedRole ? selectedRole.label : "Pilih Role Anda";
   };
-
-  // Handle submit form
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
     setLoading(true);
-
     if (!email || !email.includes("@")) {
       setError("Email tidak valid");
       setLoading(false);
       return;
     }
-
     if (!password) {
       setError("Password tidak boleh kosong");
       setLoading(false);
       return;
     }
-
     if (!role) {
       setError("Silakan pilih role terlebih dahulu");
       setLoading(false);
       return;
     }
-
     try {
-      // Kirim kredensial + role ke endpoint private login
       const res = await apiFetch('/api/user/private/login', {
         method: "POST",
         body: JSON.stringify({ email, password, role }),
       });
-
       const data = await res.json();
-
       if (!res.ok) {
         setError(data.error || "Login gagal");
         setLoading(false);
         return;
       }
-
       if (!data.token) {
         setError("Login gagal: token tidak diterima dari server");
         setLoading(false);
         return;
       }
-
-      // Simpan sesi private (admin/penguji/pengasuh)
       setAuthSession({ token: data.token, user: data.user, mode: "private" });
-
-      // Redirect ke dashboard sesuai role yang dipilih
       router.push(`/PrivateWeb/${role}`);
     } catch (err) {
       setError(err.message || "Terjadi kesalahan. Silakan coba lagi.");
@@ -90,13 +68,11 @@ export default function LoginPage() {
       setLoading(false);
     }
   };
-
   return (
     <div className="min-h-screen flex flex-col md:flex-row bg-white font-sans antialiased">
-      {/* Left Side - Desktop */}
+      {/* Left side */}
       <div className="hidden md:flex md:w-[45%] lg:w-[40%] bg-gradient-to-b from-[#1B7A42] to-[#137333] flex-col items-center justify-center p-12 text-white relative overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.08),transparent_50%)] pointer-events-none" />
-
         <div className="flex flex-col items-center text-center z-10 max-w-sm">
           <div className="relative w-48 h-48 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center shadow-2xl mb-8 transition-transform duration-500 hover:scale-105">
             <div className="w-36 h-36 rounded-full bg-white flex items-center justify-center p-3 shadow-lg">
@@ -110,22 +86,18 @@ export default function LoginPage() {
               />
             </div>
           </div>
-
           <h2 className="text-2xl lg:text-3xl font-bold leading-tight tracking-tight text-white mb-4">
             Pendaftaran Santri Baru<br />
             Pondok Pesantren Delima Tanjung Rejo
           </h2>
-
           <p className="text-green-100/80 text-xs lg:text-sm leading-relaxed font-light">
             Mengantarkan manusia unggul dengan mengedepankan keluhuran akhlak, cerdas berilmu, dan bijak beramal.
           </p>
         </div>
       </div>
-
-      {/* Right Side */}
+      {/* Right side */}
       <div className="flex-1 flex flex-col justify-between px-6 py-8 md:p-12 lg:p-16 bg-white overflow-y-auto">
-        
-        {/* Mobile Header */}
+        {/* Mobile header */}
         <div className="flex flex-col items-center text-center md:hidden bg-gradient-to-b from-[#1B7A42] to-[#137333] -mt-8 mx-[-24px] pt-10 pb-8 rounded-b-full mb-4">
           <div className="relative w-40 h-40 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center shadow-2xl mb-4 transition-transform duration-500 hover:scale-105">
             <div className="w-32 h-32 rounded-full bg-white flex items-center justify-center p-3 shadow-lg">
@@ -140,9 +112,7 @@ export default function LoginPage() {
             </div>
           </div>
         </div>
-
         <div className="hidden md:block" />
-
         <div className="w-full max-w-[440px] mx-auto my-auto">
           <div className="mb-6">
             <h1 className="text-2xl font-bold text-gray-900 tracking-tight mb-2">
@@ -152,7 +122,6 @@ export default function LoginPage() {
               Silakan masukkan email, kata sandi, dan pilih role anda untuk masuk ke sistem.
             </p>
           </div>
-
           {error && (
             <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm flex items-start gap-3 animate-fade-in">
               <svg className="w-5 h-5 mt-0.5 flex-shrink-0 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -161,9 +130,8 @@ export default function LoginPage() {
               <span className="font-medium">{error}</span>
             </div>
           )}
-
           <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Email Input */}
+            {/* Email */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-1.5">
                 Email Sesuai Role
@@ -181,8 +149,7 @@ export default function LoginPage() {
                 />
               </div>
             </div>
-
-            {/* Password Input */}
+            {/* Password */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-1.5">
                 Kata Sandi
@@ -208,8 +175,7 @@ export default function LoginPage() {
                 </button>
               </div>
             </div>
-
-            {/* Role Dropdown */}
+            {/* Role */}
             <div className="relative">
               <label className="block text-sm font-semibold text-gray-700 mb-1.5">
                 Role
@@ -226,7 +192,6 @@ export default function LoginPage() {
                 <span>{getRoleDisplayText()}</span>
                 <ChevronDown className={`w-5 h-5 text-gray-400 transition-transform duration-200 ${showRole ? 'rotate-180' : ''}`} />
               </button>
-
               {showRole && (
                 <div className="absolute z-20 mt-2 w-full bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden animate-fade-in">
                   {roles.map((r) => {
@@ -252,8 +217,7 @@ export default function LoginPage() {
                 </div>
               )}
             </div>
-
-            {/* Submit Button */}
+            {/* Submit */}
             <button
               type="submit"
               disabled={loading}
@@ -264,7 +228,6 @@ export default function LoginPage() {
             </button>
           </form>
         </div>
-        
         <div className="hidden md:block" />
       </div>
     </div>

@@ -1,55 +1,42 @@
+
 "use client";
-
-// Halaman pembayaran pendaftaran
-
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { apiFetch } from "@/lib/api";
 import { getAuthToken } from "@/lib/auth";
 import { HiCheck, HiInformationCircle, HiOutlineOfficeBuilding, HiClipboard, HiExclamation, HiClock, HiCloudUpload, HiRefresh, HiPaperAirplane, HiCheckCircle, HiPrinter, HiExclamationCircle } from "react-icons/hi";
-
 export default function PembayaranPage() {
-  // State form
   const router = useRouter();
   const [buktiPembayaran, setBuktiPembayaran] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState("pending");
   const [uploadError, setUploadError] = useState("");
   const [userEmail, setUserEmail] = useState("");
-
-  // Ambil data awal
   useEffect(() => {
     if (typeof window !== "undefined") {
-      // Cek autentikasi, redirect ke login publik jika belum login
       if (!getAuthToken()) {
         router.replace("/PublicWeb/login");
         return;
       }
-
       const userData = localStorage.getItem("user");
       if (!userData) {
         router.replace("/PublicWeb/login");
         return;
       }
-
       const user = JSON.parse(userData);
       const email = user.email || "";
       setUserEmail(email);
-
       const fetchPaymentStatus = async () => {
         try {
-          // Ambil status pembayaran terbaru dari backend
           const response = await apiFetch(`/api/pendaftaran/status/${encodeURIComponent(email)}`);
           if (response.ok) {
             const data = await response.json();
             const backendStatus = data.payment_status || "";
             const confirmedStatuses = ["confirmed", "lunas", "success"];
             const isConfirmed = confirmedStatuses.includes(backendStatus);
-            // Cek apakah bukti pembayaran pernah dikirim
             const hasSubmittedProof =
               backendStatus === "submitted" ||
               localStorage.getItem("payment_status") === "submitted";
-
             if (isConfirmed) {
               setPaymentStatus("success");
               localStorage.setItem("payment_status", backendStatus);
@@ -64,17 +51,14 @@ export default function PembayaranPage() {
           console.error("Failed to fetch payment status:", error);
         }
       };
-
       const fetchBiaya = async () => {
         try {
-          // Ambil tahun aktif dari settings
           const settingsRes = await apiFetch('/api/settings');
           let activeYear = new Date().getFullYear();
           if (settingsRes.ok) {
             const settingsData = await settingsRes.json();
             activeYear = parseInt(settingsData.data?.active_year) || activeYear;
           }
-          // Ambil biaya pendaftaran sesuai tahun aktif
           const biayaRes = await apiFetch(`/api/settings/biaya/${activeYear}`);
           if (biayaRes.ok) {
             const biayaData = await biayaRes.json();
@@ -84,13 +68,10 @@ export default function PembayaranPage() {
           console.error("Failed to fetch biaya:", error);
         }
       };
-
       fetchPaymentStatus();
       fetchBiaya();
     }
   }, [router]);
-
-  // State rekening dan kode bayar
   const rekeningInfo = {
     bank: "BSI (Bank Syariah Indonesia)",
     nomor: "7258945578",
@@ -98,64 +79,49 @@ export default function PembayaranPage() {
     kodeBayar: "DTJR-2026",
   };
   const [biaya, setBiaya] = useState(0);
-
-  // Validasi dan handler file upload bukti pembayaran
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
       const validTypes = ["image/jpeg", "image/jpg", "image/png"];
       const maxSize = 2 * 1024 * 1024;
-
       if (!validTypes.includes(file.type)) {
         setUploadError("Format file tidak valid. Harus JPG, JPEG, atau PNG");
         setBuktiPembayaran(null);
         return;
       }
-
       if (file.size > maxSize) {
         setUploadError("Ukuran file terlalu besar. Maksimal 2MB");
         setBuktiPembayaran(null);
         return;
       }
-
       setUploadError("");
       setBuktiPembayaran(file);
     }
   };
-
-  // Submit bukti
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!buktiPembayaran) {
       setUploadError("Silakan upload bukti pembayaran terlebih dahulu");
       return;
     }
-
     if (!userEmail) {
       setUploadError("Silakan login terlebih dahulu");
       return;
     }
-
     setIsSubmitting(true);
     setUploadError("");
-
     try {
-      // Validasi konfigurasi Cloudinary
       if (!process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME) {
         throw new Error('Konfigurasi Cloudinary tidak lengkap: CLOUD_NAME tidak ditemukan');
       }
-
       if (!process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET) {
         throw new Error('Konfigurasi Cloudinary tidak lengkap: UPLOAD_PRESET tidak ditemukan');
       }
-
       console.log('Starting payment proof upload:', {
         fileName: buktiPembayaran.name,
         fileSize: buktiPembayaran.size,
         fileType: buktiPembayaran.type,
       });
-
-      // Upload bukti pembayaran ke Cloudinary
       const formDataUpload = new FormData();
       formDataUpload.append("file", buktiPembayaran);
       formDataUpload.append(
@@ -168,10 +134,8 @@ export default function PembayaranPage() {
         "resource_type",
         buktiPembayaran.type.startsWith("image/") ? "image" : "raw",
       );
-
       const cloudinaryUrl = `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/upload`;
       console.log('Uploading to:', cloudinaryUrl);
-
       const cloudinaryResponse = await fetch(
         cloudinaryUrl,
         {
@@ -179,7 +143,6 @@ export default function PembayaranPage() {
           body: formDataUpload,
         },
       );
-
       let cloudinaryData;
       try {
         cloudinaryData = await cloudinaryResponse.json();
@@ -191,8 +154,6 @@ export default function PembayaranPage() {
           `Server Cloudinary mengembalikan respons tidak valid (status: ${cloudinaryResponse.status})`
         );
       }
-
-      // Cek respon Cloudinary
       if (!cloudinaryResponse.ok) {
         const errorMsg = cloudinaryData?.error?.message ||
           cloudinaryData?.error ||
@@ -202,25 +163,20 @@ export default function PembayaranPage() {
           `Upload ke Cloudinary gagal: ${errorMsg}`,
         );
       }
-
       if (cloudinaryData.error) {
         console.error("Cloudinary error:", cloudinaryData);
         throw new Error(
           cloudinaryData.error.message || "Upload ke Cloudinary gagal",
         );
       }
-
       if (!cloudinaryData.secure_url) {
         console.error('No secure_url in response:', cloudinaryData);
         throw new Error('Upload berhasil tetapi tidak mendapat URL file');
       }
-
       console.log('Upload successful:', {
         url: cloudinaryData.secure_url,
         publicId: cloudinaryData.public_id
       });
-
-      // Kirim URL bukti pembayaran ke backend
       const response = await apiFetch(`/api/pembayaran`, {
         method: "POST",
         body: JSON.stringify({
@@ -234,16 +190,12 @@ export default function PembayaranPage() {
           },
         }),
       });
-
       const result = await response.json();
-
       if (!response.ok) {
         throw new Error(
           result.details || result.error || "Gagal menyimpan bukti pembayaran",
         );
       }
-
-      // Simpan status pembayaran ke localStorage
       localStorage.setItem(
         "payment_status",
         result.data?.status_pembayaran || "submitted",
@@ -261,7 +213,6 @@ export default function PembayaranPage() {
           },
         }),
       );
-
       setPaymentStatus("success");
       setTimeout(() => {
         alert(
@@ -279,7 +230,6 @@ export default function PembayaranPage() {
       setIsSubmitting(false);
     }
   };
-
   return (
     <div className="min-h-screen bg-gray-50 px-4 py-12">
       <div className="max-w-4xl mx-auto">
@@ -291,7 +241,6 @@ export default function PembayaranPage() {
             Selesaikan pembayaran untuk mengaktifkan pendaftaran Santi Anda
           </p>
         </div>
-
         <section className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
           <div className="px-6 py-5 border-b border-gray-200">
             <h2 className="text-xl font-bold text-gray-800 flex items-center">
@@ -299,7 +248,6 @@ export default function PembayaranPage() {
               Informasi Pembayaran
             </h2>
           </div>
-
           <div className="p-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               <div className="space-y-5">
@@ -316,7 +264,6 @@ export default function PembayaranPage() {
                     </span>
                   </div>
                 </div>
-
                 <div className="bg-gray-50 rounded-xl p-5 border border-gray-200">
                   <label className="block text-xs font-medium text-gray-500 mb-2">
                     NOMOR REKENING
@@ -336,7 +283,6 @@ export default function PembayaranPage() {
                     </button>
                   </div>
                 </div>
-
                 <div className="bg-gray-50 rounded-xl p-5 border border-gray-200">
                   <label className="block text-xs font-medium text-gray-500 mb-2">
                     ATAS NAMA
@@ -345,7 +291,6 @@ export default function PembayaranPage() {
                     {rekeningInfo.nama}
                   </p>
                 </div>
-
                 <div className="grid grid-cols-2 gap-4">
                   <div className="bg-gray-50 rounded-xl p-5 border border-gray-200">
                     <label className="block text-xs font-medium text-gray-500 mb-2">
@@ -375,7 +320,6 @@ export default function PembayaranPage() {
                     </div>
                   </div>
                 </div>
-
                 <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
                   <div className="flex items-start">
                     <HiExclamation className="w-5 h-5 text-amber-500 mr-2 mt-0.5 flex-shrink-0" />
@@ -386,7 +330,6 @@ export default function PembayaranPage() {
                   </div>
                 </div>
               </div>
-
               <div className="bg-gray-50 rounded-2xl p-6 border border-gray-200">
                 <h3 className="font-bold text-lg text-gray-800 mb-4 flex items-center">
                   <HiClipboard className="w-5 h-5 mr-2 text-green-600" />
@@ -407,7 +350,6 @@ export default function PembayaranPage() {
                     </li>
                   ))}
                 </ol>
-
                 <div className="mt-6 pt-4 border-t border-gray-200">
                   <div className="text-center">
                     <div className="w-12 h-12 rounded-xl bg-gray-100 mx-auto mb-3 flex items-center justify-center">
@@ -428,7 +370,6 @@ export default function PembayaranPage() {
             </div>
           </div>
         </section>
-
         {paymentStatus === "pending" && (
           <section className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
             <div className="px-6 py-5 border-b border-gray-200">
@@ -437,7 +378,6 @@ export default function PembayaranPage() {
                 Upload Bukti Pembayaran
               </h2>
             </div>
-
             <div className="p-6">
               <div className="border-2 border-dashed border-gray-300 rounded-2xl p-10 md:p-12 text-center transition-all duration-300 hover:border-gray-400 hover:bg-gray-50">
                 <input
@@ -489,14 +429,12 @@ export default function PembayaranPage() {
                   )}
                 </label>
               </div>
-
               {uploadError && (
                 <div className="mt-5 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm flex items-start">
                   <HiExclamationCircle className="w-5 h-5 mr-2 mt-0.5 flex-shrink-0 text-red-500" />
                   <span>{uploadError}</span>
                 </div>
               )}
-
               <div className="mt-8 pt-6 border-t flex justify-center">
                 <button
                   type="button"
@@ -545,7 +483,6 @@ export default function PembayaranPage() {
             </div>
           </section>
         )}
-
         {paymentStatus === "success" && (
           <section className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
             <div className="px-6 py-5 border-b border-gray-200">
@@ -554,7 +491,6 @@ export default function PembayaranPage() {
                 Konfirmasi & Jadwal
               </h2>
             </div>
-
             <div className="p-6 md:p-8">
               <div className="text-center mb-10">
                 <div className="w-24 h-24 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
@@ -568,7 +504,6 @@ export default function PembayaranPage() {
                   pendaftaran Santi telah aktif.
                 </p>
               </div>
-
               <div className="mb-8 pb-8 border-b border-gray-200">
                 <div className="flex mb-4">
                   <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center mr-4 flex-shrink-0">
@@ -608,7 +543,6 @@ export default function PembayaranPage() {
                   </button>
                 </div>
               </div>
-
               <div className="mb-8 pb-8 border-b border-gray-200">
                 <div className="flex mb-4">
                   <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center mr-4 flex-shrink-0">
@@ -649,7 +583,6 @@ export default function PembayaranPage() {
                   </div>
                 </div>
               </div>
-
               <div>
                 <div className="flex mb-4">
                   <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center mr-4 flex-shrink-0">
@@ -674,15 +607,11 @@ export default function PembayaranPage() {
                   ))}
                 </div>
               </div>
-
               <div className="mt-10 pt-6 border-t flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div className="flex items-start text-gray-600">
                   <HiExclamation className="w-6 h-6 mr-3 mt-1 flex-shrink-0 text-yellow-500" />
                   <p className="text-sm">
-                    Informasi lengkap telah dikirim ke Email Anda.
                     <br className="hidden md:block" />
-                    Pastikan untuk mengecek folder spam jika tidak menemukan
-                    email.
                   </p>
                 </div>
                 <button
@@ -695,7 +624,7 @@ export default function PembayaranPage() {
             </div>
           </section>
         )}
-      </div>
+      </div> 
     </div>
   );
 }

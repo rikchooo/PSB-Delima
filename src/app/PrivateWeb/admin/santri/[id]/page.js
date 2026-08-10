@@ -1,13 +1,9 @@
 "use client";
-
-// Halaman detail pendaftaran santri
-
 import { useState, useEffect } from "react";
 import { apiFetch } from "@/lib/api";
 import { getAuthToken, getPrivateSession } from "@/lib/auth";
 import { useRouter, useParams } from "next/navigation";
 import PrivateHeader from "@/components/PrivateHeader";
-
 export default function SantriDetail() {
   const [santri, setSantri] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -18,38 +14,26 @@ export default function SantriDetail() {
   const [biayaDetail, setBiayaDetail] = useState(0);
   const router = useRouter();
   const params = useParams();
-
   useEffect(() => {
-    // Ambil data
     const fetchData = async () => {
       try {
-        // Cek autentikasi
         if (!getAuthToken()) {
           router.replace("/PrivateWeb/login");
           return;
         }
-
-        // Cek akses admin
         const parsed = getPrivateSession();
         if (!parsed || parsed.role !== "admin") {
           router.replace("/PrivateWeb/login");
           return;
         }
-
         setAuthChecked(true);
-
-        // Ambil detail pendaftaran santri
         const response = await apiFetch(`/api/pendaftaran/santri/${params.id}`, {
         });
-
         if (!response.ok) {
           throw new Error('Failed to fetch student data');
         }
-
         const result = await response.json();
         const data = result.data;
-
-        // Transformasi data API ke format yang digunakan halaman
         setSantri({
           id: data.id_pendaftaran,
           namaLengkap: data.nama_lengkap,
@@ -80,18 +64,13 @@ export default function SantriDetail() {
           createdAt: data.created_at,
           tahunPendaftaran: data.tahun_pendaftaran,
         });
-
         setStatus(data.status || "pending");
-
-        // Ambil biaya pendaftaran sesuai tahun pendaftaran
         const year = String(data.tahun_pendaftaran || new Date(data.created_at).getFullYear());
         const biayaRes = await apiFetch(`/api/settings/biaya/${year}`);
         if (biayaRes.ok) {
           const biayaData = await biayaRes.json();
           setBiayaDetail(biayaData.biaya || 0);
         }
-
-        // Ambil data pembayaran santri
         const paymentRes = await apiFetch(`/api/pembayaran/pendaftaran/${params.id}`);
         if (paymentRes.ok) {
           const paymentData = await paymentRes.json();
@@ -104,11 +83,8 @@ export default function SantriDetail() {
         setLoading(false);
       }
     };
-
     fetchData();
   }, [params.id, router]);
-
-  // Kembali
   const handleBack = () => {
     if (window.history.length > 1) {
       router.back();
@@ -116,32 +92,26 @@ export default function SantriDetail() {
       router.push("/PrivateWeb/admin");
     }
   };
-
   const handleDelete = async () => {
     const confirmation = confirm('Apakah Anda yakin ingin menghapus data pendaftaran ini?\n\nData akan di-soft delete dan tetap disimpan di database untuk arsip.');
     if (!confirmation) return;
-
     try {
       const res = await apiFetch(`/api/pendaftaran/santri/${params.id}`, {
         method: 'DELETE',
       });
-
       if (!res.ok) {
         const errorData = await res.json();
         throw new Error(errorData.error || 'Gagal menghapus data');
       }
-
       alert('Data pendaftaran berhasil dihapus');
       router.push('/PrivateWeb/admin');
     } catch (err) {
       alert(`Gagal menghapus data: ${err.message}`);
     }
   };
-
   const updatePaymentStatus = async (newStatus) => {
     if (!pembayaran?.id) return;
     try {
-      // Update status pembayaran (konfirmasi/tolak) via PATCH
       const res = await apiFetch(`/api/pembayaran/${pembayaran.id}`, {
         method: 'PATCH',
         body: JSON.stringify({ status_pembayaran: newStatus }),
@@ -154,10 +124,7 @@ export default function SantriDetail() {
       alert(`Gagal memperbarui pembayaran: ${err.message}`);
     }
   };
-
-  // Badge status
   const getStatusBadge = (status) => {
-    // Warna badge sesuai status pendaftaran santri
     const statusConfig = {
       pending: { label: 'Menunggu', className: 'bg-gradient-to-r from-yellow-400 to-yellow-500 text-white' },
       accepted: { label: 'Diterima', className: 'bg-gradient-to-r from-green-400 to-green-600 text-white' },
@@ -171,8 +138,6 @@ export default function SantriDetail() {
       </div>
     );
   };
-
-  // Loading
   if (loading && !error) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -186,7 +151,6 @@ export default function SantriDetail() {
       </div>
     );
   }
-
   if (error) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
@@ -206,14 +170,11 @@ export default function SantriDetail() {
       </div>
     );
   }
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       <PrivateHeader />
-
       <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         <header className="mb-6 sm:mb-8">
-
           <button
             onClick={handleDelete}
             className="flex items-center text-red-600 hover:text-red-700 mb-4 sm:mb-6 transition-colors duration-300 group"
@@ -228,7 +189,6 @@ export default function SantriDetail() {
             </svg>
             <span className="font-semibold text-base sm:text-lg">Hapus Data</span>
           </button>
-          
           <article className="bg-white rounded-xl sm:rounded-2xl shadow-lg sm:shadow-xl p-4 sm:p-6 md:p-8">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
               <div className="flex-1">
@@ -243,7 +203,6 @@ export default function SantriDetail() {
             </div>
           </article>
         </header>
-
         <div className="space-y-4 sm:space-y-6">
           <section 
             aria-labelledby="santri-data"
@@ -273,7 +232,6 @@ export default function SantriDetail() {
               ))}
             </div>
           </section>
-
           <section 
             aria-labelledby="ayah-data"
             className="bg-white rounded-xl sm:rounded-2xl shadow-lg sm:shadow-xl p-4 sm:p-6 md:p-8 hover:shadow-xl sm:hover:shadow-2xl transition-shadow duration-300"
@@ -301,7 +259,6 @@ export default function SantriDetail() {
               ))}
             </div>
           </section>
-
           <section 
             aria-labelledby="ibu-data"
             className="bg-white rounded-xl sm:rounded-2xl shadow-lg sm:shadow-xl p-4 sm:p-6 md:p-8 hover:shadow-xl sm:hover:shadow-2xl transition-shadow duration-300"
@@ -329,7 +286,6 @@ export default function SantriDetail() {
               ))}
             </div>
           </section>
-
           <section 
             aria-labelledby="pendaftaran-info"
             className="bg-white rounded-xl sm:rounded-2xl shadow-lg sm:shadow-xl p-4 sm:p-6 md:p-8 hover:shadow-xl sm:hover:shadow-2xl transition-shadow duration-300"
@@ -360,7 +316,6 @@ export default function SantriDetail() {
               </div>
             </div>
           </section>
-
           <section 
             aria-labelledby="pembayaran-info"
             className="bg-white rounded-xl sm:rounded-2xl shadow-lg sm:shadow-xl p-4 sm:p-6 md:p-8 hover:shadow-xl sm:hover:shadow-2xl transition-shadow duration-300"

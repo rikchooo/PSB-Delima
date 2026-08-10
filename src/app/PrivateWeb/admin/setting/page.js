@@ -1,20 +1,15 @@
 "use client";
-
-// Halaman pengaturan sistem
-
 import { useState, useEffect, useCallback } from "react";
 import { apiFetch } from "@/lib/api";
 import { getAuthToken, getPrivateSession } from "@/lib/auth";
 import { useRouter } from "next/navigation";
 import PrivateHeader from "@/components/PrivateHeader";
 import { HiSave, HiSwitchHorizontal, HiUserGroup, HiDocumentText, HiCheckCircle, HiXCircle, HiArrowLeft } from "react-icons/hi";
-
 const DEFAULT_SCHEDULE = {
   wave1: "1 Jan - 31 Mar 2026",
   wave2: "1 Apr - 30 Jun 2026",
   wave3: "1 Jul - 30 Sep 2026",
 };
-
 export default function SettingPage() {
   const [settings, setSettings] = useState({});
   const [schedule, setSchedule] = useState(DEFAULT_SCHEDULE);
@@ -27,7 +22,6 @@ export default function SettingPage() {
   const [pendaftaranAktif, setPendaftaranAktif] = useState(false);
   const [savingPendaftaran, setSavingPendaftaran] = useState(false);
   const router = useRouter();
-
   useEffect(() => {
     const fetchSettings = async () => {
       try {
@@ -40,27 +34,23 @@ export default function SettingPage() {
           router.replace("/PrivateWeb/login");
           return;
         }
-
         const [settingsRes, scheduleRes, pendaftaranRes] = await Promise.all([
           apiFetch('/api/settings'),
           apiFetch('/api/settings/schedule'),
           apiFetch('/api/settings/pendaftaran_aktif'),
         ]);
-
         if (settingsRes.ok) {
           const result = await settingsRes.json();
           setSettings(result.data || {});
           const year = result.data?.active_year || new Date().getFullYear().toString();
           setActiveYear(year);
         }
-
         if (scheduleRes.ok) {
           const scheduleData = await scheduleRes.json();
           if (scheduleData.data) {
             setSchedule(scheduleData.data);
           }
         }
-
         if (pendaftaranRes.ok) {
           const pendaftaranData = await pendaftaranRes.json();
           setPendaftaranAktif(!!pendaftaranData.pendaftaran_aktif);
@@ -71,10 +61,8 @@ export default function SettingPage() {
         setLoading(false);
       }
     };
-
     fetchSettings();
   }, [router]);
-
   useEffect(() => {
     const fetchBiaya = async () => {
       if (!activeYear) return;
@@ -91,16 +79,13 @@ export default function SettingPage() {
         setBiaya(0);
       }
     };
-
     fetchBiaya();
   }, [activeYear]);
-
   const handleSaveYearBiaya = useCallback(async () => {
     setSaving(true);
     setError(null);
     setSuccess(null);
     try {
-      // Simpan tahun aktif dan biaya pendaftaran secara paralel
       await Promise.all([
         apiFetch(`/api/settings/active_year`, {
           method: 'PUT',
@@ -120,13 +105,11 @@ export default function SettingPage() {
       setSaving(false);
     }
   }, [activeYear, biaya]);
-
   const handleSaveSchedule = useCallback(async () => {
     setSaving(true);
     setError(null);
     setSuccess(null);
     try {
-      // Simpan jadwal gelombang pendaftaran ke backend
       const res = await apiFetch('/api/settings/schedule', {
         method: 'PUT',
         body: JSON.stringify(schedule),
@@ -143,13 +126,11 @@ export default function SettingPage() {
       setSaving(false);
     }
   }, [schedule]);
-
   const handleSaveSignature = useCallback(async () => {
     setSaving(true);
     setError(null);
     setSuccess(null);
     try {
-      // Simpan nama/jabatan panitia, nama/ttd bendahara, dan barcode secara paralel
       await Promise.all([
         apiFetch(`/api/settings/panitia_nama`, {
           method: 'PUT',
@@ -180,13 +161,11 @@ export default function SettingPage() {
       setSaving(false);
     }
   }, [settings.panitia_nama, settings.panitia_jabatan, settings.bendahara_nama, settings.bendahara_ttd, settings.laporan_barcode]);
-
   const togglePendaftaranAktif = useCallback(async () => {
     setSavingPendaftaran(true);
     setError(null);
     setSuccess(null);
     try {
-      // Toggle status pendaftaran (buka/tutup) ke backend
       const newValue = !pendaftaranAktif;
       const res = await apiFetch('/api/settings/pendaftaran_aktif', {
         method: 'PUT',
@@ -205,7 +184,6 @@ export default function SettingPage() {
       setSavingPendaftaran(false);
     }
   }, [pendaftaranAktif]);
-
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -219,7 +197,6 @@ export default function SettingPage() {
       </div>
     );
   }
-
   if (error && Object.keys(settings).length === 0) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -241,13 +218,11 @@ export default function SettingPage() {
       </div>
     );
   }
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       <PrivateHeader />
-
       <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header Section */}
+        {/* Header */}
         <div className="mb-8">
           <div className="flex items-start justify-between">
             <div>
@@ -258,8 +233,7 @@ export default function SettingPage() {
             </div>
           </div>
         </div>
-
-        {/* Alert Messages */}
+        {/* Alerts */}
         {error && (
           <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 rounded-r-lg flex items-start">
             <HiXCircle className="w-5 h-5 text-red-500 mr-3 flex-shrink-0 mt-0.5" />
@@ -269,7 +243,6 @@ export default function SettingPage() {
             </div>
           </div>
         )}
-
         {success && (
           <div className="mb-6 p-4 bg-green-50 border-l-4 border-green-500 rounded-r-lg flex items-start">
             <HiCheckCircle className="w-5 h-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
@@ -279,10 +252,9 @@ export default function SettingPage() {
             </div>
           </div>
         )}
-
-        {/* Configuration Cards */}
+        {/* Config cards */}
         <div className="space-y-6">
-          {/* Registration Status Card */}
+          {/* Registration status */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-300">
             <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-green-50 to-transparent">
               <div className="flex items-center">
@@ -332,8 +304,7 @@ export default function SettingPage() {
               </div>
             </div>
           </div>
-
-          {/* Academic Year & Fee Card */}
+          {/* Year & fee */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-300">
             <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-transparent">
               <div className="flex items-center">
@@ -387,8 +358,7 @@ export default function SettingPage() {
               </div>
             </div>
           </div>
-
-          {/* Schedule Card */}
+          {/* Schedule */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-300">
             <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-purple-50 to-transparent">
               <div className="flex items-center">
@@ -431,8 +401,7 @@ export default function SettingPage() {
               </div>
             </div>
           </div>
-
-          {/* Signatures Card - Combined */}
+          {/* Signatures & docs */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-300">
             <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-indigo-50 to-transparent">
               <div className="flex items-center">
@@ -524,4 +493,3 @@ export default function SettingPage() {
     </div>
   );
 }
-

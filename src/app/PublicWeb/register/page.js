@@ -1,7 +1,4 @@
 'use client';
-
-// Halaman registrasi akun baru
-
 import Image from 'next/image';
 import { API_URL } from "@/lib/config";
 import { apiFetch } from "@/lib/api";
@@ -9,7 +6,6 @@ import "@/styles/globals.css";
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { User, Mail, Eye, EyeOff, ArrowRight } from 'lucide-react';
-
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
     full_name: '',
@@ -20,45 +16,34 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
-
   const handleChange = (e) =>
     setFormData({ ...formData, [e.target.name]: e.target.value });
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setLoading(true);
-
-    // Validasi field wajib diisi
     if (!formData.full_name || !formData.email || !formData.password) {
       setError('Mohon lengkapi semua field');
       setLoading(false);
       return;
     }
-
-    // Validasi panjang password minimal 6 karakter
     if (formData.password.length < 6) {
       setError('Password minimal 6 karakter');
       setLoading(false);
       return;
     }
-
     try {
       const res = await apiFetch('/api/user/register', {
         method: 'POST',
         body: JSON.stringify(formData),
       });
-
       const data = await res.json();
-
       if (!res.ok) {
         setError(data.error || 'Registrasi gagal');
         setLoading(false);
         return;
       }
-
       alert('Registrasi berhasil! Silakan login.');
-      // Redirect ke halaman login setelah registrasi sukses
       router.push('/PublicWeb/login');
     } catch (err) {
       setError(err.message || 'Terjadi kesalahan. Silakan coba lagi.');
@@ -66,12 +51,10 @@ export default function RegisterPage() {
       setLoading(false);
     }
   };
-
   return (
     <div className="min-h-screen flex flex-col md:flex-row bg-white font-sans antialiased">
       <div className="hidden md:flex md:w-[45%] lg:w-[40%] bg-gradient-to-b from-[#1B7A42] to-[#137333] flex-col items-center justify-center p-12 text-white relative overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.08),transparent_50%)] pointer-events-none" />
-
         <div className="flex flex-col items-center text-center z-10 max-w-sm">
           <div className="relative w-48 h-48 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center shadow-2xl mb-8 transition-transform duration-500 hover:scale-105">
             <div className="w-36 h-36 rounded-full bg-white flex items-center justify-center p-3 shadow-lg">
@@ -85,18 +68,15 @@ export default function RegisterPage() {
               />
             </div>
           </div>
-
           <h2 className="text-2xl lg:text-3xl font-bold leading-tight tracking-tight text-white mb-4">
             Pendaftaran Santri Baru<br />
             Pondok Pesantren Delima Tanjung Rejo
           </h2>
-
           <p className="text-green-100/80 text-xs lg:text-sm leading-relaxed font-light">
             Mengantarkan manusia unggul dengan mengedapkan keluhuran akhlak, cerdas berilmu, dan bijak beramal.
           </p>
         </div>
       </div>
-
       <div className="flex-1 flex flex-col justify-between px-6 py-8 md:p-12 lg:p-16 bg-white overflow-y-auto">
         <div className="flex flex-col items-center text-center md:hidden bg-gradient-to-b from-[#1B7A42] to-[#137333] -mt-8 mx-[-24px] pt-10 pb-8 rounded-b-full mb-4">
           <div className="relative w-40 h-40 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center shadow-2xl mb-4 transition-transform duration-500 hover:scale-105">
@@ -112,9 +92,7 @@ export default function RegisterPage() {
             </div>
           </div>
         </div>
-
         <div className="hidden md:block" />
-
         <div className="w-full max-w-[440px] mx-auto my-auto">
           <div className="mb-6">
             <h1 className="text-2xl font-bold text-gray-900 tracking-tight mb-2">
@@ -124,7 +102,6 @@ export default function RegisterPage() {
               Lengkapi data di bawah ini untuk memulai proses pendaftaran putra/putri Anda.
             </p>
           </div>
-
           {error && (
             <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm flex items-start gap-3 animate-fade-in">
               <svg className="w-5 h-5 mt-0.5 flex-shrink-0 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -133,7 +110,6 @@ export default function RegisterPage() {
               <span className="font-medium">{error}</span>
             </div>
           )}
-
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-1.5">
@@ -153,7 +129,6 @@ export default function RegisterPage() {
                 />
               </div>
             </div>
-
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-1.5">
                 Email Aktif
@@ -172,7 +147,6 @@ export default function RegisterPage() {
                 />
               </div>
             </div>
-
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-1.5">
                 Kata Sandi
@@ -199,7 +173,6 @@ export default function RegisterPage() {
                 </button>
               </div>
             </div>
-
             <button
               type="submit"
               disabled={loading}
@@ -209,7 +182,6 @@ export default function RegisterPage() {
               {!loading && <ArrowRight className="w-4 h-4" />}
             </button>
           </form>
-
           <div className="text-center text-sm mt-8">
             <span className="text-gray-500">Sudah punya akun? </span>
             <a href="/PublicWeb/login" className="font-bold text-[#137333] hover:text-[#0f5c29] hover:underline transition-colors ml-1">

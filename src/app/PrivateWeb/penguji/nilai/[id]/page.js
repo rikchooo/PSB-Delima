@@ -1,13 +1,9 @@
 "use client";
-
-// Halaman input nilai tes santri
-
 import { useState, useEffect, useMemo } from "react";
 import { apiFetch } from "@/lib/api";
 import { getAuthToken, getPrivateSession } from "@/lib/auth";
 import { useRouter, useParams } from "next/navigation";
 import PrivateHeader from "@/components/PrivateHeader";
-
 function getLevel(nilai) {
   const n = parseFloat(nilai);
   if (isNaN(n)) return "";
@@ -17,7 +13,6 @@ function getLevel(nilai) {
   if (n <= 80) return "lanjut";
   return "mahir";
 }
-
 const LEVEL_LABELS = {
   pemula: "Pemula",
   dasar: "Dasar",
@@ -25,7 +20,6 @@ const LEVEL_LABELS = {
   lanjut: "Lanjut",
   mahir: "Mahir",
 };
-
 const RANGE_INFO = [
   { min: 0, max: 20, level: "Pemula" },
   { min: 21, max: 40, level: "Dasar" },
@@ -33,7 +27,6 @@ const RANGE_INFO = [
   { min: 61, max: 80, level: "Lanjut" },
   { min: 81, max: 100, level: "Mahir" },
 ];
-
 export default function InputNilaiPage() {
   const [santri, setSantri] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -46,36 +39,26 @@ export default function InputNilaiPage() {
   });
   const router = useRouter();
   const params = useParams();
-
   const autoLevelAlquran = useMemo(() => getLevel(formData.nilaiAlquran), [formData.nilaiAlquran]);
   const autoLevelKitab = useMemo(() => getLevel(formData.nilaiKitab), [formData.nilaiKitab]);
-
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Cek autentikasi dan role penguji
         if (!getAuthToken()) {
           router.replace("/PrivateWeb/login");
           return;
         }
-
         const parsed = getPrivateSession();
         if (!parsed || parsed.role !== "penguji") {
           router.replace("/PrivateWeb/login");
           return;
         }
-
-        // Ambil detail santri berdasarkan ID dari URL
         const response = await apiFetch(`/api/pendaftaran/santri/${params.id}`);
-
         if (!response.ok) {
           throw new Error('Gagal memuat data santri');
         }
-
         const result = await response.json();
         const data = result.data;
-
-        // Transformasi data API ke format yang digunakan form
         setSantri({
           id: data.id_pendaftaran,
           namaLengkap: data.nama_lengkap,
@@ -98,10 +81,8 @@ export default function InputNilaiPage() {
         setLoading(false);
       }
     };
-
     fetchData();
   }, [params.id, router]);
-
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({
@@ -109,9 +90,7 @@ export default function InputNilaiPage() {
       [name]: value
     }));
   };
-
   const validateForm = () => {
-    // Validasi nilai Al-Quran harus diisi dan berupa angka 0-100
     if (!formData.nilaiAlquran && formData.nilaiAlquran !== 0) {
       alert("Nilai Al-Quran harus diisi");
       return false;
@@ -120,31 +99,23 @@ export default function InputNilaiPage() {
       alert("Nilai Kitab Kuning harus diisi");
       return false;
     }
-
     const alquran = parseFloat(formData.nilaiAlquran);
     const kitab = parseFloat(formData.nilaiKitab);
-
     if (isNaN(alquran) || isNaN(kitab)) {
       alert("Nilai harus berupa angka");
       return false;
     }
-
     if (alquran < 0 || alquran > 100 || kitab < 0 || kitab > 100) {
       alert("Nilai harus antara 0-100");
       return false;
     }
-
     return true;
   };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     if (!validateForm()) return;
-
     setSubmitting(true);
     try {
-      // Kirim nilai tes ke backend
       const response = await apiFetch(`/api/pengujian/santri/${params.id}/nilai`, {
         method: 'POST',
         body: JSON.stringify({
@@ -153,19 +124,13 @@ export default function InputNilaiPage() {
           catatan: formData.catatan,
         }),
       });
-
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || errorData.message || 'Gagal menyimpan nilai');
       }
-
       const result = await response.json();
-
       alert("Nilai berhasil disimpan!");
-
-      // Kembali ke halaman sebelumnya setelah sukses
       router.back();
-
     } catch (err) {
       console.error('Error submitting nilai:', err);
       alert(`Gagal menyimpan nilai: ${err.message}`);
@@ -173,7 +138,6 @@ export default function InputNilaiPage() {
       setSubmitting(false);
     }
   };
-
   const handleBack = () => {
     if (window.history.length > 1) {
       router.back();
@@ -181,7 +145,6 @@ export default function InputNilaiPage() {
       router.push("/PrivateWeb/penguji");
     }
   };
-
   if (error) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
@@ -206,11 +169,9 @@ export default function InputNilaiPage() {
       </div>
     );
   }
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       <PrivateHeader />
-
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
           <div className="bg-white rounded-2xl shadow-xl p-6 md:p-8">
@@ -227,7 +188,6 @@ export default function InputNilaiPage() {
             </div>
           </div>
         </div>
-
         <section className="bg-white rounded-2xl shadow-xl p-6 md:p-8">
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="bg-gray-50 rounded-lg p-4">
@@ -251,7 +211,6 @@ export default function InputNilaiPage() {
                 </div>
               </div>
             </div>
-
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
               <h3 className="text-sm font-semibold text-blue-800 mb-2">Keterangan Level</h3>
               <div className="grid grid-cols-2 md:grid-cols-5 gap-2 text-xs">
@@ -263,7 +222,6 @@ export default function InputNilaiPage() {
                 ))}
               </div>
             </div>
-
             <div className="border-b border-gray-200 pb-6">
               <div className="flex items-center mb-4">
                 <div className="bg-gradient-to-br from-green-500 to-green-600 p-2 rounded-lg mr-3">
@@ -273,7 +231,6 @@ export default function InputNilaiPage() {
                 </div>
                 <h3 className="text-xl font-bold text-gray-900">Nilai Al-Quran</h3>
               </div>
-              
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -293,7 +250,6 @@ export default function InputNilaiPage() {
                   />
                   <p className="text-xs text-gray-500 mt-1">Nilai harus antara 0-100</p>
                 </div>
-
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Level Al-Quran (Otomatis)
@@ -308,7 +264,6 @@ export default function InputNilaiPage() {
                 </div>
               </div>
             </div>
-
             <div className="border-b border-gray-200 pb-6">
               <div className="flex items-center mb-4">
                 <div className="bg-gradient-to-br from-yellow-500 to-yellow-600 p-2 rounded-lg mr-3">
@@ -318,7 +273,6 @@ export default function InputNilaiPage() {
                 </div>
                 <h3 className="text-xl font-bold text-gray-900">Nilai Kitab Kuning</h3>
               </div>
-              
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -338,7 +292,6 @@ export default function InputNilaiPage() {
                   />
                   <p className="text-xs text-gray-500 mt-1">Nilai harus antara 0-100</p>
                 </div>
-
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Level Kitab Kuning (Otomatis)
@@ -353,7 +306,6 @@ export default function InputNilaiPage() {
                 </div>
               </div>
             </div>
-
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Catatan / Komentar (Opsional)
@@ -367,7 +319,6 @@ export default function InputNilaiPage() {
                 placeholder="Tambahkan catatan atau komentar untuk santri"
               />
             </div>
-
             <div className="flex justify-end gap-4 pt-6">
               <button
                 type="button"

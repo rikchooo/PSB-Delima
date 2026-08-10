@@ -1,22 +1,15 @@
 "use client";
-
-// Halaman akses ditolak
-
 import { useRouter } from "next/navigation";
 import { HiExclamation } from "react-icons/hi";
-
 export default function Unauthorized() {
   const router = useRouter();
-
   const handleBack = () => {
-    // Jika ada riwayat navigasi, kembali; jika tidak, ke login
     if (window.history.length > 1) {
       router.back();
     } else {
       router.push("/PrivateWeb/login");
     }
   };
-
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
       <div className="text-center bg-white rounded-xl shadow-lg p-8 max-w-md">

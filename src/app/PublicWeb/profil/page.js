@@ -1,27 +1,15 @@
 'use client';
-
-// Halaman profil pengguna
-
 import Link from 'next/link';
 import { apiFetch } from "@/lib/api";
 import { clearAuthSession, getAuthToken } from "@/lib/auth";
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { HiCheckCircle, HiClock, HiExclamation, HiLogout, HiDocumentText, HiCurrencyDollar, HiChevronDown, HiPencil } from 'react-icons/hi';
-
-/**
- * @function hasFilledSantriForm
- * @description Cek apakah user sudah mengisi formulir santri (draft tersimpan).
- * @param {string|null} savedData - JSON string dari localStorage
- * @returns {boolean} True jika ada field yang terisi
- */
 const hasFilledSantriForm = (savedData) => {
   if (!savedData) return false;
-
   try {
     const parsedData = JSON.parse(savedData);
     const formData = parsedData.formData || {};
-
     return Object.values(formData).some((value) =>
       typeof value === 'string' ? value.trim() !== '' : Boolean(value)
     );
@@ -30,41 +18,32 @@ const hasFilledSantriForm = (savedData) => {
     return false;
   }
 };
-
 export default function ProfilPage() {
   const router = useRouter();
-  
   const [user, setUser] = useState(() => {
     if (typeof window === 'undefined') return null;
     const userData = localStorage.getItem('user');
     return userData ? JSON.parse(userData) : null;
   });
-
   const [registrationStatus, setRegistrationStatus] = useState(() => {
     if (typeof window === 'undefined') return '';
     return localStorage.getItem('registration_status') || '';
   });
-
   const [paymentStatus, setPaymentStatus] = useState(() => {
     if (typeof window === 'undefined') return '';
     return localStorage.getItem('payment_status') || '';
   });
-
   const [hasSantriData, setHasSantriData] = useState(false);
   const [paymentData, setPaymentData] = useState(null);
   const [fetchError, setFetchError] = useState(null);
   const [pendaftaranAktif, setPendaftaranAktif] = useState(true);
   const [notif, setNotif] = useState(null);
-
-  // Ambil data status pendaftaran dan pembayaran terbaru dari API
   useEffect(() => {
     if (!user || !getAuthToken()) {
       clearAuthSession({ mode: 'public' });
       router.push('/PublicWeb/login');
       return;
     }
-
-    // Muat data formulir dan pembayaran tersimpan di localStorage
     const savedSantriData = localStorage.getItem(`santri_form_data_${user.email}`);
     const savedPaymentData = localStorage.getItem(`payment_data_${user.email}`);
     setHasSantriData(hasFilledSantriForm(savedSantriData));
@@ -78,30 +57,23 @@ export default function ProfilPage() {
     } else {
       setPaymentData(null);
     }
-
     const fetchLatestStatus = async () => {
       setFetchError(null);
       try {
-        // Ambil status pendaftaran dan pembayaran dari backend
         const statusResponse = await apiFetch(`/api/pendaftaran/status/${encodeURIComponent(user.email)}`);
         if (!statusResponse.ok) {
           throw new Error(`HTTP error! status: ${statusResponse.status}`);
         }
         const data = await statusResponse.json();
-
         if (data.status) {
           setRegistrationStatus(data.status);
           localStorage.setItem('registration_status', data.status);
         }
-
-        // Normalisasi status pembayaran ke nilai yang dikenali
         const normalizedPaymentStatus = data.payment_status && ['pending', 'submitted', 'confirmed', 'lunas', 'success', 'rejected', 'cancelled'].includes(data.payment_status)
           ? data.payment_status
           : 'pending';
         setPaymentStatus(normalizedPaymentStatus);
         localStorage.setItem('payment_status', normalizedPaymentStatus);
-
-        // Ambil detail pembayaran terbaru
         const paymentResponse = await apiFetch(`/api/pembayaran/email/${encodeURIComponent(user.email)}`);
         if (paymentResponse.ok) {
           const paymentResult = await paymentResponse.json();
@@ -123,10 +95,7 @@ export default function ProfilPage() {
         setFetchError(msg);
       }
     };
-
     fetchLatestStatus();
-
-    // Cek apakah pendaftaran masih aktif dari pengaturan
     const fetchPendaftaranAktif = async () => {
       try {
         const res = await apiFetch('/api/settings/pendaftaran_aktif');
@@ -138,10 +107,8 @@ export default function ProfilPage() {
         console.error('Failed to fetch pendaftaran aktif:', err);
       }
     };
-
     fetchPendaftaranAktif();
   }, [router, user]);
-
   const handleLogout = () => {
     if (user?.email) {
       localStorage.removeItem(`payment_data_${user.email}`);
@@ -149,20 +116,15 @@ export default function ProfilPage() {
     clearAuthSession({ mode: 'public' });
     router.push('/');
   };
-
   const isRegistrationAccepted = registrationStatus === 'accepted';
   const isRegistrationSubmitted = registrationStatus === 'submitted' || registrationStatus === 'pending';
   const isRegistrationFilled = hasSantriData || isRegistrationSubmitted || isRegistrationAccepted;
   const isPaymentSubmitted = paymentStatus === 'submitted' || Boolean(paymentData);
-  // Pembayaran dianggap lunas jika statusnya confirmed/lunas/success
   const isPaymentConfirmed = ['confirmed', 'lunas', 'success'].includes(paymentStatus);
-  // Tentukan link pembayaran: ke bukti jika sudah lunas, ke form jika belum
   const paymentHref = isPaymentConfirmed && paymentData?.id_pendaftaran
     ? `/PublicWeb/pembayaran/buktipembayaran?id=${paymentData.id_pendaftaran}`
     : '/PublicWeb/pembayaran';
-
   const displayName = user?.full_name || user?.name || 'Pengguna';
-
   const getInitials = (name, email) => {
     if (name && name !== 'Pengguna') {
       return name
@@ -172,14 +134,11 @@ export default function ProfilPage() {
         .map((word) => word.charAt(0).toUpperCase())
         .join('');
     }
-
     if (!email) return 'U';
     const [username] = email.split('@');
     return username.charAt(0).toUpperCase();
   };
-
   const userInitials = getInitials(displayName, user?.email);
-
   if (!user) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -187,7 +146,6 @@ export default function ProfilPage() {
       </div>
     );
   }
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-white py-8 px-4">
       <div className="max-w-2xl mx-auto">
@@ -209,12 +167,10 @@ export default function ProfilPage() {
               </div>
             </div>
           </div>
-          
           <div className="pt-16 pb-6 px-6 text-center">
             <h1 className="text-2xl font-bold text-gray-800">{displayName}</h1>
             <p className="text-gray-500 mt-1">{user?.email || '-'}</p>
           </div>
-
           {fetchError && (
             <div className="px-6 pb-4">
               <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
@@ -223,10 +179,8 @@ export default function ProfilPage() {
             </div>
           )}
         </div>
-        
         <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
           <h2 className="text-lg font-semibold text-gray-800 mb-4">Status Pendaftaran</h2>
-          
           <div className="flex items-center justify-center py-4">
             {isRegistrationAccepted ? (
               <div className="text-center">
@@ -251,7 +205,6 @@ export default function ProfilPage() {
               </div>
             )}
           </div>
-
           {isRegistrationAccepted && isPaymentConfirmed && (
             <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-xl">
               <div className="flex items-start gap-3">
@@ -265,7 +218,6 @@ export default function ProfilPage() {
               </div>
             </div>
           )}
-
           {isRegistrationAccepted && !isPaymentConfirmed && isPaymentSubmitted && (
             <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-xl">
               <div className="flex items-start gap-3">
@@ -279,7 +231,6 @@ export default function ProfilPage() {
               </div>
             </div>
           )}
-
           {isRegistrationAccepted && !isPaymentConfirmed && !isPaymentSubmitted && (
             <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-xl">
               <div className="flex items-start gap-3">
@@ -294,7 +245,6 @@ export default function ProfilPage() {
             </div>
           )}
         </div>
-
         <div className="bg-white rounded-2xl shadow-lg overflow-hidden mb-6">
           <div className="border-b border-gray-100">
             <button
@@ -318,7 +268,6 @@ export default function ProfilPage() {
               </div>
               <HiChevronDown className="w-5 h-5 text-gray-400 rotate-[-90deg]" />
             </button>
-
             {isRegistrationFilled && (
               <div className="px-4 pb-4">
                 <Link
@@ -331,7 +280,6 @@ export default function ProfilPage() {
               </div>
             )}
           </div>
-
           {isRegistrationAccepted && (
             <Link
               href={paymentHref}
@@ -369,7 +317,6 @@ export default function ProfilPage() {
             </Link>
           )}
         </div>
-
         <button
           onClick={handleLogout}
           className="w-full flex items-center justify-center gap-3 py-4 px-6 font-semibold text-white bg-red-600 hover:bg-red-500 rounded-full transition-colors"

@@ -69,7 +69,7 @@ export default function PrivateHeader() {
             </button>
           </nav>
 
-          {/* Mobile toggle */}
+          {/* Mobile menu toggle */}
           <div className="md:hidden">
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}

@@ -1,14 +1,10 @@
 "use client";
-
-// Halaman bukti pembayaran (kwitansi)
-
 import { useState, useEffect } from "react";
 import { apiFetch } from "@/lib/api";
 import { getAuthToken, getPrivateSession } from "@/lib/auth";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import "@/styles/globals.css";
-
 export default function LaporanPage() {
   const [pembayaran, setPembayaran] = useState(null);
   const [error, setError] = useState(null);
@@ -17,25 +13,19 @@ export default function LaporanPage() {
   const [settings, setSettings] = useState({});
   const router = useRouter();
   const searchParams = useSearchParams();
-
   useEffect(() => {
     const fetchPembayaran = async () => {
-      // Cek autentikasi, redirect ke login jika belum login
       if (!getAuthToken()) {
         router.replace("/PublicWeb/login");
         return;
       }
-
       const id = searchParams.get("id");
-      // Validasi parameter ID pendaftaran dari URL
       if (!id) {
         setLoading(false);
         setError("ID pendaftaran tidak ditemukan");
         return;
       }
-
       try {
-        // Ambil data pembayaran berdasarkan ID pendaftaran
         const paymentRes = await apiFetch(`/api/pembayaran/pendaftaran/${id}`);
         if (!paymentRes.ok) {
           const errText = await paymentRes.text().catch(() => 'Gagal mengambil data pembayaran');
@@ -44,8 +34,6 @@ export default function LaporanPage() {
         const paymentResult = await paymentRes.json();
         const paymentData = paymentResult.data || paymentResult;
         setPembayaran(paymentData);
-
-        // Ambil biaya dari settings, fallback ke nominal dari data pembayaran
         let biayaValue = 0;
         try {
           const settingsRes = await apiFetch('/api/settings');
@@ -62,12 +50,10 @@ export default function LaporanPage() {
         } catch (settingsErr) {
           console.warn('Settings not available, using payment nominal fallback', settingsErr);
         }
-
         if (!biayaValue && paymentData.nominal) {
           const parsed = parseInt(paymentData.nominal, 10);
           if (!isNaN(parsed)) biayaValue = parsed;
         }
-
         setBiaya(biayaValue);
         setError(null);
       } catch (err) {
@@ -77,18 +63,14 @@ export default function LaporanPage() {
         setLoading(false);
       }
     };
-
     fetchPembayaran();
   }, [searchParams, router]);
-
   if (error) return <div className="p-6 text-red-600">Error: {error}</div>;
   if (loading) return <div className="p-6">Memuat data pembayaran...</div>;
   if (!pembayaran) return <div className="p-6">Data pembayaran tidak ditemukan</div>;
-
   const handlePrint = () => {
     window.print();
   };
-
   const handleBack = () => {
     if (window.history.length > 1) {
       router.back();
@@ -96,7 +78,6 @@ export default function LaporanPage() {
       router.push("/PublicWeb/pembayaran");
     }
   };
-
   const formatTanggal = (tanggal) => {
     if (!tanggal) return "-";
     try {
@@ -110,16 +91,13 @@ export default function LaporanPage() {
       return tanggal;
     }
   };
-
   const formatRupiah = (angka) => {
     const nominal = Number(angka) || 0;
     const utuh = Math.floor(nominal).toLocaleString("id-ID");
     const desimal = (nominal % 1).toFixed(2).slice(2);
     return `Rp ${utuh},${desimal}`;
   };
-
   const getStatusLabel = (status) => {
-    // Map status pembayaran backend ke label yang mudah dibaca
     if (!status) return "Belum Bayar";
     switch (status) {
       case "submitted":
@@ -135,9 +113,8 @@ export default function LaporanPage() {
         return status;
     }
   };
-
   const nominal = biaya || pembayaran.nominal || 0;
-  // Fungsi terbilang untuk nominal rupiah
+  const terbilang = (() => {
     const bilangan = [
       "",
       "Satu",
@@ -179,10 +156,8 @@ export default function LaporanPage() {
     };
     return (penggalan(nominal) + " Rupiah").replace(/\s+/g, " ").trim();
   })();
-
   const noKwitansi = `PSB-${String(pembayaran.id ?? searchParams.get("id") ?? "-").padStart(4, '0')}`;
   const noRegistrasi = `PSB-${String(pembayaran.id_pendaftaran ?? searchParams.get("id") ?? "-").padStart(4, '0')}`;
-
   return (
     <div className="kwitansi-wrapper">
       <div className="no-print fixed top-6 right-6 z-50 flex flex-col gap-3">
@@ -205,7 +180,6 @@ export default function LaporanPage() {
           <span className="font-medium">Cetak</span>
         </button>
       </div>
-
       <div className="kwitansi-page">
         <div className="kwitansi-inner">
           <div className="kwitansi-header">
@@ -233,7 +207,6 @@ export default function LaporanPage() {
               </table>
             </div>
           </div>
-
           <div className="kwitansi-body">
             <table className="kwitansi-table">
               <tbody>
@@ -272,12 +245,10 @@ export default function LaporanPage() {
               </tbody>
             </table>
           </div>
-
           <div className="kwitansi-amount">
             <span className="amount-label">JUMLAH</span>
             <span className="amount-value">{formatRupiah(nominal)}</span>
           </div>
-
           <div className="kwitansi-footer">
             <div className="kwitansi-note">
               <p>Catatan:</p>
@@ -287,7 +258,7 @@ export default function LaporanPage() {
               <p className="mb-3 font-semibold">Mengetahui,</p>
               <div className="flex flex-col items-center">
                 {settings?.bendahara_ttd && (
-                  <Image src={settings.bendahara_ttd} alt="TTD Bendahara" className="h-10 w-auto object-contain" />
+                  <Image src={settings.bendahara_ttd} alt="TTD Bendahara" width={40} height={40} className="h-10 w-auto object-contain" />
                 )}
               <p className="font-semibold underline mt-1">{settings?.bendahara_nama || 'Nama Bendahara'}</p>
               <p className="text-[10px] text-gray-500 mt-1">Bendahara</p>

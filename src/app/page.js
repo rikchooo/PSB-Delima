@@ -1,24 +1,18 @@
 "use client";
-
-// Halaman landing PSB Delima
-
 import "@/styles/globals.css";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { HiOutlineClipboard, HiOutlineCheckCircle, HiOutlineBell, HiOutlineCurrencyDollar, HiOutlineCalendar, HiOutlineUser, HiOutlineCloudUpload, HiOutlineCheck, HiOutlineArrowNarrowRight, HiOutlineClock, HiOutlineStar, HiOutlineDocumentText, HiOutlineHome, HiOutlineIdentification, HiOutlineAcademicCap, HiOutlineCamera, HiOutlineHeart } from "react-icons/hi";
 import { FaInstagram, FaFacebook, FaYoutube, FaTiktok } from "react-icons/fa";
 import { apiFetch } from "@/lib/api";
-
 const DEFAULT_SCHEDULE = {
   wave1: "1 Jan - 31 Mar 2026",
   wave2: "1 Apr - 30 Jun 2026",
   wave3: "1 Jul - 30 Sep 2026",
 };
-
 export default function LandingPage() {
   const [registrationSchedule, setRegistrationSchedule] = useState(DEFAULT_SCHEDULE);
   const [activeYear, setActiveYear] = useState(null);
-
   useEffect(() => {
     const loadSettings = async () => {
       try {
@@ -33,11 +27,8 @@ export default function LandingPage() {
         console.error("Gagal memuat tahun aktif dari API:", error);
       }
     };
-
     loadSettings();
   }, []);
-
-  // Muat jadwal pendaftaran dari API, fallback ke localStorage
   useEffect(() => {
     const loadSchedule = async () => {
       try {
@@ -52,10 +43,8 @@ export default function LandingPage() {
       } catch (error) {
         console.error("Gagal memuat jadwal pendaftaran dari API:", error);
       }
-
       const savedSchedule = localStorage.getItem("registration_schedule");
       if (!savedSchedule) return;
-
       try {
         setRegistrationSchedule({
           ...DEFAULT_SCHEDULE,
@@ -65,24 +54,18 @@ export default function LandingPage() {
         console.error("Gagal membaca jadwal pendaftaran:", error);
       }
     };
-
     loadSchedule();
-    // Sinkronisasi jadwal antar tab browser
     window.addEventListener("storage", loadSchedule);
-
     return () => {
       window.removeEventListener("storage", loadSchedule);
     };
   }, []);
-
   const handleLogin = () => {
     window.location.href = "/PublicWeb/login";
   };
-
   const handleRegister = () => {
     window.location.href = "/PublicWeb/register";
   };
-
   return (
     <div className="bg-white py-12 px-4 sm:px-6 lg:px-8 overflow-x-hidden">
       <div className="max-w-5xl mx-auto space-y-8">
@@ -90,16 +73,13 @@ export default function LandingPage() {
           <h1 className="text-3xl md:text-4xl lg:text-5xl font-semibold text-gray-900">
             Pondok Pesantren
           </h1>
-
           <h2 className="text-5xl md:text-6xl lg:text-7xl font-extrabold text-green-700 mt-4 mb-6 leading-tight">
             Delima Tanjung Rejo
           </h2>
-
           <p className="text-3xl md:text-4xl font-semibold text-gray-800 mb-10">
             Pendaftaran Santri Baru <br className="hidden sm:block" />
             Tahun Ajaran {activeYear ? `${activeYear} / ${parseInt(activeYear) + 1}` : '2026 / 2027'}
           </p>
-
           <div className="max-w-3xl mx-auto mb-12">
             <div className="w-24 h-1 bg-green-600 mx-auto mb-6 rounded-full" />
             <p className="text-lg md:text-xl text-gray-700 leading-relaxed">
@@ -110,7 +90,6 @@ export default function LandingPage() {
               <span className="font-semibold text-green-700"> bijak beramal</span>.
             </p>
           </div>
-
           <div className="flex flex-row gap-5 justify-center">
             <button
               onClick={handleLogin}
@@ -118,7 +97,6 @@ export default function LandingPage() {
             >
               Masuk
             </button>
-
             <button
               onClick={handleRegister}
               className="py-3 px-8 text-lg font-semibold text-white bg-green-700 hover:bg-green-600 rounded-full transition-all duration-200 shadow-sm hover:shadow-md"
@@ -127,7 +105,6 @@ export default function LandingPage() {
             </button>
           </div>
         </section>
-
         <section className="py-10">
           <div className="text-center">
             <span className="inline-block px-4 py-1.5 bg-green-100 text-green-700 text-sm font-semibold rounded-full mb-4">
@@ -141,7 +118,6 @@ export default function LandingPage() {
               mendapatkan proses seleksi yang optimal.
             </p>
           </div>
-
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="group relative bg-white border border-green-200 hover:border-green-300 rounded-3xl p-8 hover:-translate-y-1 transition-all duration-300 flex flex-col h-full">
               <div className="absolute top-6 right-6">
@@ -163,7 +139,6 @@ export default function LandingPage() {
                 <p className="text-gray-600 text-sm leading-relaxed">Kuota prioritas dengan benefit early bird.</p>
               </div>
             </div>
-
             <div className="group relative bg-white border border-green-200 hover:border-green-300 rounded-3xl p-8 hover:-translate-y-1 transition-all duration-300 flex flex-col h-full">
               <div className="absolute top-6 right-6">
                 <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold text-white bg-gradient-to-r from-teal-500 to-cyan-600 shadow-sm">
@@ -184,7 +159,6 @@ export default function LandingPage() {
                 <p className="text-gray-600 text-sm leading-relaxed">Kuota reguler dengan proses standar.</p>
               </div>
             </div>
-
             <div className="group relative bg-white border border-green-200 hover:border-green-300 rounded-3xl p-8 hover:-translate-y-1 transition-all duration-300 flex flex-col h-full">
               <div className="absolute top-6 right-6">
                 <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold text-white bg-gradient-to-r from-teal-500 to-cyan-600 shadow-sm">
@@ -207,7 +181,6 @@ export default function LandingPage() {
             </div>
           </div>
         </section>
-
         <section className="py-10">
           <div className="text-center">
             <span className="inline-block px-4 py-1.5 bg-green-100 text-green-700 text-sm font-semibold rounded-full mb-4">
@@ -221,8 +194,7 @@ export default function LandingPage() {
               pendaftaran santri baru.
             </p>
           </div>
-
-          {/* Desktop-Horizontal */}
+          {/* Desktop layout */}
           <div className="hidden md:block relative">
             <div className="absolute top-6 left-0 right-0 h-0.5 bg-green-200" />
             <div className="grid grid-cols-6 gap-4 relative">
@@ -235,7 +207,6 @@ export default function LandingPage() {
                   <p className="text-xs text-gray-500 mt-1">Daftar email</p>
                 </div>
               </div>
-
               <div className="flex flex-col items-center text-center group">
                 <div className="relative z-10 w-12 h-12 flex items-center justify-center rounded-full bg-green-100 text-green-700 font-bold text-lg shadow-sm group-hover:bg-green-200 group-hover:scale-110 transition-all duration-300">
                   <HiOutlineClipboard className="w-5 h-5" />
@@ -245,7 +216,6 @@ export default function LandingPage() {
                   <p className="text-xs text-gray-500 mt-1">Data pribadi</p>
                 </div>
               </div>
-
               <div className="flex flex-col items-center text-center group">
                 <div className="relative z-10 w-12 h-12 flex items-center justify-center rounded-full bg-green-100 text-green-700 font-bold text-lg shadow-sm group-hover:bg-green-200 group-hover:scale-110 transition-all duration-300">
                   <HiOutlineCloudUpload className="w-5 h-5" />
@@ -255,7 +225,6 @@ export default function LandingPage() {
                   <p className="text-xs text-gray-500 mt-1">Dokumen</p>
                 </div>
               </div>
-
               <div className="flex flex-col items-center text-center group">
                 <div className="relative z-10 w-12 h-12 flex items-center justify-center rounded-full bg-green-100 text-green-700 font-bold text-lg shadow-sm group-hover:bg-green-200 group-hover:scale-110 transition-all duration-300">
                   <HiOutlineCheck className="w-5 h-5" />
@@ -265,7 +234,6 @@ export default function LandingPage() {
                   <p className="text-xs text-gray-500 mt-1">Validasi admin</p>
                 </div>
               </div>
-
               <div className="flex flex-col items-center text-center group">
                 <div className="relative z-10 w-12 h-12 flex items-center justify-center rounded-full bg-green-100 text-green-700 font-bold text-lg shadow-sm group-hover:bg-green-200 group-hover:scale-110 transition-all duration-300">
                   <HiOutlineBell className="w-5 h-5" />
@@ -275,7 +243,6 @@ export default function LandingPage() {
                   <p className="text-xs text-gray-500 mt-1">Hasil seleksi</p>
                 </div>
               </div>
-
               <div className="flex flex-col items-center text-center group">
                 <div className="relative z-10 w-12 h-12 flex items-center justify-center rounded-full bg-green-100 text-green-700 font-bold text-lg shadow-sm group-hover:bg-green-200 group-hover:scale-110 transition-all duration-300">
                   <HiOutlineCurrencyDollar className="w-5 h-5" />
@@ -287,8 +254,7 @@ export default function LandingPage() {
               </div>
             </div>
           </div>
-
-          {/* Mobile-Vertikal */}
+          {/* Mobile layout */}
           <div className="md:hidden space-y-6">
             <div className="flex items-start gap-4">
               <div className="relative z-10 w-12 h-12 flex items-center justify-center rounded-full bg-green-100 text-green-700 font-bold text-sm shadow-sm flex-shrink-0">
@@ -299,7 +265,6 @@ export default function LandingPage() {
                 <p className="text-sm text-gray-500">Daftar dengan email aktif</p>
               </div>
             </div>
-
             <div className="flex items-start gap-4">
               <div className="relative z-10 w-12 h-12 flex items-center justify-center rounded-full bg-green-100 text-green-700 font-bold text-sm shadow-sm flex-shrink-0">
                 <HiOutlineClipboard className="w-5 h-5" />
@@ -309,7 +274,6 @@ export default function LandingPage() {
                 <p className="text-sm text-gray-500">Lengkapi data pribadi & pendidikan</p>
               </div>
             </div>
-
             <div className="flex items-start gap-4">
               <div className="relative z-10 w-12 h-12 flex items-center justify-center rounded-full bg-green-100 text-green-700 font-bold text-sm shadow-sm flex-shrink-0">
                 <HiOutlineCloudUpload className="w-5 h-5" />
@@ -319,7 +283,6 @@ export default function LandingPage() {
                 <p className="text-sm text-gray-500">Unggah dokumen persyaratan</p>
               </div>
             </div>
-
             <div className="flex items-start gap-4">
               <div className="relative z-10 w-12 h-12 flex items-center justify-center rounded-full bg-green-100 text-green-700 font-bold text-sm shadow-sm flex-shrink-0">
                 <HiOutlineCheck className="w-5 h-5" />
@@ -329,7 +292,6 @@ export default function LandingPage() {
                 <p className="text-sm text-gray-500">Tim admin memvalidasi berkas</p>
               </div>
             </div>
-
             <div className="flex items-start gap-4">
               <div className="relative z-10 w-12 h-12 flex items-center justify-center rounded-full bg-green-100 text-green-700 font-bold text-sm shadow-sm flex-shrink-0">
                 <HiOutlineBell className="w-5 h-5" />
@@ -339,7 +301,6 @@ export default function LandingPage() {
                 <p className="text-sm text-gray-500">Notifikasi hasil seleksi via email</p>
               </div>
             </div>
-
             <div className="flex items-start gap-4">
               <div className="relative z-10 w-12 h-12 flex items-center justify-center rounded-full bg-green-100 text-green-700 font-bold text-sm shadow-sm flex-shrink-0">
                 <HiOutlineCurrencyDollar className="w-5 h-5" />
@@ -351,8 +312,7 @@ export default function LandingPage() {
             </div>
           </div>
         </section>
-
-        {/* Section Syarat Pendaftaran */}
+        {/* Registration requirements */}
         <section className="py-10">
           <div className="max-w-5xl mx-auto">
             <div className="bg-white rounded-3xl p-8 md:p-10">
@@ -368,7 +328,6 @@ export default function LandingPage() {
                   proses pendaftaran berjalan lancar.
                 </p>
               </div>
-
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {[
                   { icon: HiOutlineDocumentText, text: "Fotokopi Akta Kelahiran", color: "text-blue-500", bg: "bg-blue-100" },
@@ -391,12 +350,10 @@ export default function LandingPage() {
                   </div>
                 ))}
               </div>
-
             </div>
           </div>
         </section>
-
-        {/* Section kontak & lokasi */}
+        {/* Contact & location */}
         <section className="py-10">
           <div className="text-center mb-12">
             <span className="inline-block px-4 py-1.5 bg-green-100 text-green-700 text-sm font-semibold rounded-full mb-4">
@@ -410,9 +367,8 @@ export default function LandingPage() {
               melalui saluran resmi berikut.
             </p>
           </div>
-
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* Contact Cards */}
+            {/* Contact cards */}
             <div className="space-y-4">
               <a
                 href="https://wa.me/6289524064264"
@@ -434,7 +390,6 @@ export default function LandingPage() {
                   className="w-5 h-5 text-gray-400 ml-auto group-hover:translate-x-1 transition-transform" 
                 />
               </a>
-
               <a
                 href="mailto:delimatanjungrejo@gmail.com"
                 target="_blank"
@@ -455,8 +410,7 @@ export default function LandingPage() {
                   className="w-5 h-5 text-gray-400 ml-auto group-hover:translate-x-1 transition-transform" 
                 />
               </a>
-
-              {/* Social Media Links */}
+              {/* Social media */}
               <div className="mt-6 p-5 bg-gradient-to-br from-green-50 to-emerald-50 border border-green-100 rounded-2xl">
                 <h5 className="font-semibold text-gray-900 mb-4 text-center">
                   Ikuti Kami di Media Sosial
@@ -492,8 +446,7 @@ export default function LandingPage() {
                 </p>
               </div>
             </div>
-
-            {/* Map Container */}
+            {/* Map */}
             <div className="relative rounded-3xl overflow-hidden border border-green-100 shadow-sm group">
               <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent z-10 pointer-events-none" />
               <iframe
@@ -507,7 +460,6 @@ export default function LandingPage() {
             </div>
           </div>
         </section>
-        
       </div>
     </div>
   );

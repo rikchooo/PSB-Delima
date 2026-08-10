@@ -1,6 +1,5 @@
-/** @type {import('next').NextConfig} */
+// Next.js config
 const nextConfig = {
-  /* config options here */
   reactCompiler: true,
   images: {
     remotePatterns: [

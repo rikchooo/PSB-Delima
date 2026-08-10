@@ -1,16 +1,8 @@
 'use client';
-
-// Formulir pendaftaran santri baru
-
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiFetch } from "@/lib/api";
 import { getAuthToken } from "@/lib/auth";
-
-/**
- * Struktur data formulir pendaftaran santri.
- * Digunakan sebagai initial state dan referensi field yang harus diisi.
- */
 const initialFormData = {
   namaLengkap: '',
   namaPanggilan: '',
@@ -37,14 +29,10 @@ const initialFormData = {
   telpIbu: '',
   tahunPendaftaran: new Date().getFullYear().toString(),
 };
-
 const SANTRI_FORM_STORAGE_PREFIX = 'santri_form_data_';
-
 export default function PendaftaranSantri() {
   const router = useRouter();
   const [formData, setFormData] = useState(initialFormData);
-
-  // State
   const [userEmail, setUserEmail] = useState('');
   const [hasLoadedSavedData, setHasLoadedSavedData] = useState(false);
   const [showJenisKelamin, setShowJenisKelamin] = useState(false);
@@ -55,29 +43,21 @@ export default function PendaftaranSantri() {
   const [uploadingFiles, setUploadingFiles] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState(null);
-
-  // Ambil email
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      // Cek autentikasi, redirect ke login jika belum login
       if (!getAuthToken()) {
         router.replace('/PublicWeb/login');
         return;
       }
-
       const userData = localStorage.getItem('user');
       if (!userData) {
         router.replace('/PublicWeb/login');
         return;
       }
-
       const user = JSON.parse(userData);
       const email = user.email || '';
-      // Muat draft formulir tersimpan berdasarkan email user
       const savedData = email ? localStorage.getItem(`${SANTRI_FORM_STORAGE_PREFIX}${email}`) : null;
-
       setUserEmail(email);
-
       if (savedData) {
         try {
           const parsedData = JSON.parse(savedData);
@@ -90,11 +70,8 @@ export default function PendaftaranSantri() {
       setHasLoadedSavedData(true);
     }
   }, [router]);
-
-  // Auto-save draft formulir ke localStorage setiap kali formData atau berkas berubah
   useEffect(() => {
     if (!hasLoadedSavedData || !userEmail || typeof window === 'undefined') return;
-
     localStorage.setItem(
       `${SANTRI_FORM_STORAGE_PREFIX}${userEmail}`,
       JSON.stringify({
@@ -104,11 +81,7 @@ export default function PendaftaranSantri() {
       })
     );
   }, [formData, savedBerkas, hasLoadedSavedData, userEmail]);
-
-  // Pilihan dropdown untuk jenis kelamin
   const jenisKelaminOptions = ['Laki-laki', 'Perempuan'];
-
-  // Pilihan dropdown untuk penghasilan
   const penghasilanOptions = [
     '< Rp 500.000',
     'Rp 500.000 – Rp 1.000.000',
@@ -117,8 +90,6 @@ export default function PendaftaranSantri() {
     'Rp 3.000.000 – Rp 5.000.000',
     '> Rp 5.000.000',
   ];
-
-  // Daftar berkas
   const berkasList = [
     { name: 'akta', label: 'Akta Kelahiran' },
     { name: 'kk', label: 'Kartu Keluarga (KK)' },
@@ -127,31 +98,16 @@ export default function PendaftaranSantri() {
     { name: 'foto', label: 'Pas Foto 3x4' },
     { name: 'suratSehat', label: 'Surat Keterangan Sehat' },
   ];
-
-  /**
-   * @description Handler perubahan input form (controlled component).
-   *   Menggunakan pattern functional update untuk menghindari stale closure.
-   */
   const handleChange = (e) =>
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
-
-  /**
-   * @description Handler perubahan input file.
-   *   Validasi: ukuran maksimal 2MB, tipe file PDF/Word/JPG/PNG.
-   *   File disimpan di state `berkas` untuk diupload nanti.
-   * @throws {alert} - Alert jika file terlalu besar atau format tidak valid
-   */
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-
     if (file.size > 2 * 1024 * 1024) {
       alert('File terlalu besar! Maksimal 2MB');
       e.target.value = null;
       return;
     }
-
-    // Validasi tipe file
     const validTypes = [
       'application/pdf',
       'application/msword',
@@ -165,48 +121,29 @@ export default function PendaftaranSantri() {
       e.target.value = null;
       return;
     }
-
     setBerkas({ ...berkas, [e.target.name]: file });
   };
-
-  /**
-   * @description Upload satu file ke Cloudinary CDN.
-   *   Folder disesuaikan dengan nama santri (sanitized).
-   * @param {File} file - File yang akan diupload
-   * @param {string} folderName - Nama folder (nama santri)
-   * @param {string} fileName - Base name untuk public_id
-   * @returns {Promise<{url: string, publicId: string, format: string, size: number, originalName: string}>}
-   * @throws {Error} Jika upload gagal atau respons Cloudinary tidak valid
-   */
   const uploadFileToCloudinary = async (file, folderName, fileName) => {
     try {
-      // Validasi nama folder
       if (!folderName || folderName.trim() === '') {
         throw new Error('Nama lengkap santri harus diisi terlebih dahulu');
       }
-
       const formDataUpload = new FormData();
       formDataUpload.append('file', file);
       formDataUpload.append('upload_preset', process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET);
-      
-      // Bersihkan nama folder
       const sanitizedFolder = folderName.replace(/[^a-zA-Z0-9_-]/g, '_');
       formDataUpload.append('folder', `santri/${sanitizedFolder}`);
       formDataUpload.append('public_id', `${fileName}_${Date.now()}`);
       formDataUpload.append('resource_type', 
         file.type.startsWith('image/') ? 'image' : 'raw'
       );
-
       const cloudinaryUrl = `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/upload`;
-      
       if (!process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME) {
         throw new Error('Konfigurasi Cloudinary tidak lengkap: CLOUD_NAME tidak ditemukan');
       }
-
       if (!process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET) {
         throw new Error('Konfigurasi Cloudinary tidak lengkap: UPLOAD_PRESET tidak ditemukan');
       }
-
       console.log('Uploading file:', {
         fileName: file.name,
         fileSize: file.size,
@@ -214,12 +151,10 @@ export default function PendaftaranSantri() {
         folder: `santri/${sanitizedFolder}`,
         cloudinaryUrl: cloudinaryUrl
       });
-
       const response = await fetch(cloudinaryUrl, {
         method: 'POST',
         body: formDataUpload,
-      });
-
+      }); 
       let data;
       try {
         data = await response.json();
@@ -229,7 +164,6 @@ export default function PendaftaranSantri() {
         console.error('Response text:', responseText);
         throw new Error(`Server Cloudinary mengembalikan respons tidak valid (status: ${response.status})`);
       }
-      
       if (!response.ok) {
         const errorMsg = data?.error?.message || 
                           data?.error || 
@@ -237,22 +171,18 @@ export default function PendaftaranSantri() {
         console.error('Cloudinary error response:', data);
         throw new Error(`Upload gagal: ${errorMsg}`);
       }
-
       if (data.error) {
         console.error('Cloudinary error in response:', data.error);
         throw new Error(`Upload gagal: ${data.error.message || data.error}`);
       }
-
       if (!data.secure_url) {
         console.error('No secure_url in response:', data);
         throw new Error('Upload berhasil tetapi tidak mendapat URL file');
       }
-
       console.log('Upload successful:', {
         url: data.secure_url,
         publicId: data.public_id
       });
-
       return {
         url: data.secure_url,
         publicId: data.public_id,
@@ -265,22 +195,13 @@ export default function PendaftaranSantri() {
       throw error;
     }
   };
-
-  /**
-   * @description Handler submit formulir pendaftaran.
-   *   Alur: validasi input → upload berkas ke Cloudinary → submit ke backend.
-   * @throws {Error} Jika validasi gagal, upload gagal, atau backend error
-   */
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
     setError(null);
-
     try {
-      // Validasi field wajib diisi sebelum submit
       const requiredFields = ['namaLengkap', 'namaPanggilan', 'jenisKelamin'];
       const missingFields = requiredFields.filter(field => !formData[field]);
-
       if (missingFields.length > 0) {
         const fieldLabels = {
           namaLengkap: 'Nama Lengkap',
@@ -292,11 +213,8 @@ export default function PendaftaranSantri() {
         setIsSubmitting(false);
         return;
       }
-
-      // Validasi berkas wajib di-upload
       const requiredFiles = ['akta', 'kk', 'ktpOrtu', 'ijazah', 'foto', 'suratSehat'];
       const missingFiles = requiredFiles.filter(file => !berkas[file] && !savedBerkas[file]);
-
       if (missingFiles.length > 0) {
         const missingNames = missingFiles.map(name =>
           berkasList.find(b => b.name === name)?.label
@@ -305,18 +223,12 @@ export default function PendaftaranSantri() {
         setIsSubmitting(false);
         return;
       }
-
       console.log('Starting file upload process for:', formData.namaLengkap);
-
-      // Upload berkas ke Cloudinary satu per satu
       const cloudinaryUrls = { ...savedBerkas };
       setUploadingFiles({});
-
       for (const [key, file] of Object.entries(berkas)) {
         if (!file) continue;
-
         setUploadingFiles(prev => ({ ...prev, [key]: true }));
-
         try {
           console.log(`Uploading file: ${key}`);
           const result = await uploadFileToCloudinary(file, formData.namaLengkap, key);
@@ -330,10 +242,7 @@ export default function PendaftaranSantri() {
           setUploadingFiles(prev => ({ ...prev, [key]: false }));
         }
       }
-
       console.log('All files uploaded. Submitting registration to backend...');
-
-      // Kirim data pendaftaran lengkap ke backend
       const response = await apiFetch(`/api/pendaftaran/santri`, {
         method: 'POST',
         body: JSON.stringify({
@@ -343,14 +252,10 @@ export default function PendaftaranSantri() {
           berkas: cloudinaryUrls,
         }),
       });
-
       const result = await response.json();
-
       if (!response.ok) {
         throw new Error(result.message || 'Gagal menyimpan data');
       }
-
-      // Simpan status submitted ke localStorage setelah berhasil
       localStorage.setItem('registration_status', 'submitted');
       setSavedBerkas(cloudinaryUrls);
       localStorage.setItem(
@@ -365,7 +270,6 @@ export default function PendaftaranSantri() {
       );
       alert('Pendaftaran berhasil dikirim!');
       window.location.href = '/PublicWeb/profil';
-
     } catch (err) {
       console.error('Submit error:', err);
       setError(err.message || 'Gagal menyimpan data. Silakan coba lagi.');
@@ -375,7 +279,6 @@ export default function PendaftaranSantri() {
       setUploadingFiles({});
     }
   };
-
   return (
     <div className="min-h-screen bg-gray-50 px-4 py-12">
       <div className="max-w-5xl mx-auto">
@@ -387,13 +290,11 @@ export default function PendaftaranSantri() {
             Lengkapi semua data dan persyaratan di bawah ini dengan benar
           </p>
         </div>
-
         {error && (
           <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
             {error}
           </div>
         )}
-
         <form onSubmit={handleSubmit} className="space-y-8">
           <section className="bg-white rounded-2xl shadow-sm border border-gray-200">
             <div className="px-6 py-5 border-b border-gray-200">
@@ -404,7 +305,6 @@ export default function PendaftaranSantri() {
                 </div>
               </div>
             </div>
-            
             <div className="p-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
@@ -420,7 +320,6 @@ export default function PendaftaranSantri() {
                     className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition-all duration-200 placeholder:text-gray-400"
                   />
                 </div>
-
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Nama Panggilan <span className="text-red-500">*</span>
@@ -434,12 +333,10 @@ export default function PendaftaranSantri() {
                     className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition-all duration-200 placeholder:text-gray-400"
                   />
                 </div>
-
                 <div className="relative">
                   <label className="block text-sm font-medium text-gray-700 mb-3">
                     Jenis Kelamin <span className="text-red-500">*</span>
                   </label>
-
                   <button
                     type="button"
                     onClick={() => setShowJenisKelamin(!showJenisKelamin)}
@@ -452,7 +349,6 @@ export default function PendaftaranSantri() {
                       ▾
                     </span>
                   </button>
-
                   {showJenisKelamin && (
                     <div className="absolute z-50 mt-2 w-full bg-white border rounded-xl shadow-lg overflow-hidden">
                       {jenisKelaminOptions.map((item, index) => (
@@ -473,7 +369,6 @@ export default function PendaftaranSantri() {
                     </div>
                   )}
                 </div>
-
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Tempat Lahir <span className="text-red-500">*</span>
@@ -487,7 +382,6 @@ export default function PendaftaranSantri() {
                     className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition-all duration-200 placeholder:text-gray-400"
                   />
                 </div>
-
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Tanggal Lahir <span className="text-red-500">*</span>
@@ -501,7 +395,6 @@ export default function PendaftaranSantri() {
                     className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition-all duration-200"
                   />
                 </div>
-
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Anak Ke- <span className="text-red-500">*</span>
@@ -517,7 +410,6 @@ export default function PendaftaranSantri() {
                     className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition-all duration-200 placeholder:text-gray-400"
                   />
                 </div>
-
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Pendidikan Terakhir <span className="text-red-500">*</span>
@@ -531,7 +423,6 @@ export default function PendaftaranSantri() {
                     className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition-all duration-200 placeholder:text-gray-400"
                   />
                 </div>
-
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Tahun Pendaftaran
@@ -544,7 +435,6 @@ export default function PendaftaranSantri() {
                     className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition-all duration-200"
                   />
                 </div>
-
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Tinggal Bersama <span className="text-red-500">*</span>
@@ -558,7 +448,6 @@ export default function PendaftaranSantri() {
                     className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition-all duration-200 placeholder:text-gray-400"
                   />
                 </div>
-
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Alamat Lengkap <span className="text-red-500">*</span>
@@ -576,7 +465,6 @@ export default function PendaftaranSantri() {
               </div>
             </div>
           </section>
-
           <section className="bg-white rounded-2xl shadow-sm border border-gray-200">
             <div className="px-6 py-5 border-b border-gray-200">
               <div className="flex items-center">
@@ -586,7 +474,6 @@ export default function PendaftaranSantri() {
                 </div>
               </div>
             </div>
-            
             <div className="p-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
@@ -602,7 +489,6 @@ export default function PendaftaranSantri() {
                     className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition-all duration-200 placeholder:text-gray-400"
                   />
                 </div>
-
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Tempat, Tanggal Lahir <span className="text-red-500">*</span>
@@ -616,7 +502,6 @@ export default function PendaftaranSantri() {
                     className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition-all duration-200 placeholder:text-gray-400"
                   />
                 </div>
-
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Usia <span className="text-red-500">*</span>
@@ -631,7 +516,6 @@ export default function PendaftaranSantri() {
                     className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition-all duration-200 placeholder:text-gray-400"
                   />
                 </div>
-
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Pekerjaan <span className="text-red-500">*</span>
@@ -645,12 +529,10 @@ export default function PendaftaranSantri() {
                     className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition-all duration-200 placeholder:text-gray-400"
                   />
                 </div>
-
                 <div className="relative">
                   <label className="block text-sm font-medium text-gray-700 mb-3">
                     Penghasilan Ayah / Bulan <span className="text-red-500">*</span>
                   </label>
-
                   <button
                     type="button"
                     onClick={() => setShowPenghasilanAyah(!showPenghasilanAyah)}
@@ -663,7 +545,6 @@ export default function PendaftaranSantri() {
                       ▾
                     </span>
                   </button>
-
                   {showPenghasilanAyah && (
                     <div className="absolute z-50 mt-2 w-full bg-white border rounded-xl shadow-lg overflow-hidden">
                       {penghasilanOptions.map((item, index) => (
@@ -686,7 +567,6 @@ export default function PendaftaranSantri() {
                     </div>
                   )}
                 </div>
-
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     No. Telepon <span className="text-red-500">*</span>
@@ -700,7 +580,6 @@ export default function PendaftaranSantri() {
                     className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition-all duration-200 placeholder:text-gray-400"
                   />
                 </div>
-
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Alamat Lengkap <span className="text-red-500">*</span>
@@ -718,7 +597,6 @@ export default function PendaftaranSantri() {
               </div>
             </div>
           </section>
-
           <section className="bg-white rounded-2xl shadow-sm border border-gray-200">
             <div className="px-6 py-5 border-b border-gray-200">
               <div className="flex items-center">
@@ -728,7 +606,6 @@ export default function PendaftaranSantri() {
                 </div>
               </div>
             </div>
-            
             <div className="p-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
@@ -744,7 +621,6 @@ export default function PendaftaranSantri() {
                     className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition-all duration-200 placeholder:text-gray-400"
                   />
                 </div>
-
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Tempat, Tanggal Lahir <span className="text-red-500">*</span>
@@ -758,7 +634,6 @@ export default function PendaftaranSantri() {
                     className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition-all duration-200 placeholder:text-gray-400"
                   />
                 </div>
-
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Usia <span className="text-red-500">*</span>
@@ -773,7 +648,6 @@ export default function PendaftaranSantri() {
                     className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition-all duration-200 placeholder:text-gray-400"
                   />
                 </div>
-
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Pekerjaan <span className="text-red-500">*</span>
@@ -787,12 +661,10 @@ export default function PendaftaranSantri() {
                     className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition-all duration-200 placeholder:text-gray-400"
                   />
                 </div>
-
                 <div className="relative">
                   <label className="block text-sm font-medium text-gray-700 mb-3">
                     Penghasilan Ibu / Bulan <span className="text-red-500">*</span>
                   </label>
-
                   <button
                     type="button"
                     onClick={() => setShowPenghasilanIbu(!showPenghasilanIbu)}
@@ -805,7 +677,6 @@ export default function PendaftaranSantri() {
                       ▾
                     </span>
                   </button>
-
                   {showPenghasilanIbu && (
                     <div className="absolute z-50 mt-2 w-full bg-white border rounded-xl shadow-lg overflow-hidden">
                       {penghasilanOptions.map((item, index) => (
@@ -828,7 +699,6 @@ export default function PendaftaranSantri() {
                     </div>
                   )}
                 </div>
-
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     No. Telepon <span className="text-red-500">*</span>
@@ -842,7 +712,6 @@ export default function PendaftaranSantri() {
                     className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition-all duration-200 placeholder:text-gray-400"
                   />
                 </div>
-
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Alamat Lengkap <span className="text-red-500">*</span>
@@ -860,7 +729,6 @@ export default function PendaftaranSantri() {
               </div>
             </div>
           </section>
-
           <section className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
             <div className="px-6 py-5 border-b border-gray-200">
               <div className="flex items-center">
@@ -870,7 +738,6 @@ export default function PendaftaranSantri() {
                 </div>
               </div>
             </div>
-            
             <div className="p-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {berkasList.map((item) => (
@@ -905,7 +772,6 @@ export default function PendaftaranSantri() {
               </div>
             </div>
           </section>
-
           <div className="flex justify-center pt-4">
             <button
               type="submit"

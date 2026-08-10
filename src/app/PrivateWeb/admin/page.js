@@ -1,24 +1,17 @@
 "use client";
-
-// Dashboard admin
-
 import { useState, useEffect, useRef } from "react";
 import { apiFetch } from "@/lib/api";
 import { getAuthToken, getPrivateSession } from "@/lib/auth";
 import { useRouter } from "next/navigation";
 import PrivateHeader from "@/components/PrivateHeader";
 import { HiUsers, HiClock, HiCheckCircle, HiXCircle, HiPrinter, HiChevronDown, HiTrendingUp, HiExclamation, HiEye, HiCheck, HiX, HiSave, HiCog, HiSwitchHorizontal } from "react-icons/hi";
-
 const REGISTRATION_SCHEDULE_KEY = "registration_schedule";
-
 const DEFAULT_REGISTRATION_SCHEDULE = {
   wave1: "1 Jan - 31 Mar 2026",
   wave2: "1 Apr - 30 Jun 2026",
   wave3: "1 Jul - 30 Sep 2026",
 };
-
 export default function AdminDashboard() {
-  // State
   const [user, setUser] = useState(null);
   const [santri, setSantri] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -38,26 +31,21 @@ export default function AdminDashboard() {
   const yearDropdownRef = useRef(null);
   const activeYearRef = useRef(activeYear);
   const [pendaftaranAktif, setPendaftaranAktif] = useState(true);
-
   useEffect(() => {
     activeYearRef.current = activeYear;
   }, [activeYear]);
-
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (yearDropdownRef.current && !yearDropdownRef.current.contains(event.target)) {
         setIsYearDropdownOpen(false);
       }
     };
-
     document.addEventListener("mousedown", handleClickOutside);
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
-
   useEffect(() => {
-    // Ambil data
     const fetchData = async () => {
       try {
         let parsed;
@@ -66,7 +54,6 @@ export default function AdminDashboard() {
             router.replace("/PrivateWeb/login");
             return;
           }
-
           parsed = getPrivateSession();
           if (!parsed || parsed.role !== "admin") {
             router.replace("/PrivateWeb/login");
@@ -77,10 +64,7 @@ export default function AdminDashboard() {
           router.replace("/PrivateWeb/login");
           return;
         }
-
         setUser(parsed);
-
-        // Fetch settings for active year
         let activeYearValue = "";
         try {
           const settingsRes = await apiFetch('/api/settings');
@@ -96,8 +80,6 @@ export default function AdminDashboard() {
           activeYearValue = new Date().getFullYear().toString();
           activeYearRef.current = activeYearValue;
         }
-
-        // Fetch pendaftaran aktif status
         try {
           const pendaftaranRes = await apiFetch('/api/settings/pendaftaran_aktif');
           if (pendaftaranRes.ok) {
@@ -107,10 +89,7 @@ export default function AdminDashboard() {
         } catch (pendaftaranErr) {
           console.error('Failed to fetch pendaftaran aktif:', pendaftaranErr);
         }
-
         console.log('Fetching from API...');
-        
-        // Cek backend
         try {
           const healthCheck = await apiFetch('/api/health', {
             method: 'GET',
@@ -123,26 +102,17 @@ export default function AdminDashboard() {
           console.error('Backend health check failed:', healthErr);
           throw new Error('Server backend tidak dapat dihubungi. Pastikan server backend sedang berjalan.');
         }
-
-        // Fetch data santri
         const response = await apiFetch('/api/pendaftaran/santri');
         console.log('Response status:', response.status);
-
         if (!response.ok) {
           const errorText = await response.text();
           console.error('API Error:', response.status, errorText);
           throw new Error('Failed to fetch data: ' + response.status);
         }
-
-        // Coba parsing response JSON
         const result = await response.json();
         console.log('API Response:', result);
-        
-        // Pastikan result.data adalah array
         const registrations = result.data || [];
         console.log('Registrations:', registrations);
-
-        // Format data
         const mappedSantri = registrations.map((item) => ({ 
           id: item.id_pendaftaran, 
           name: item.nama_lengkap,
@@ -156,49 +126,38 @@ export default function AdminDashboard() {
           address: item.alamat_santri || '-',
           tahun_pendaftaran: item.tahun_pendaftaran,
         }));
-
         mappedSantri.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-
         setSantri(mappedSantri);
       } catch (err) {
         console.error('Error fetching data:', err);
         console.error('Error message:', err.message);
-        
         let errorMessage = err.message;
         if (err.name === 'TypeError' && err.message === 'Failed to fetch') {
           errorMessage = 'Server backend tidak dapat dihubungi. Pastikan server backend sedang berjalan.';
         } else if (err.message.includes('NetworkError') || err.message.includes('network request failed')) {
           errorMessage = 'Terjadi kesalahan jaringan. Periksa koneksi Anda.';
         }
-        
         setError(errorMessage);
       } finally {
         setLoading(false);
       }
     };
-
     fetchData();
   }, [router]);
-
   useEffect(() => {
-    // Tutup dropdown
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setIsStatusDropdownOpen(false);
       }
     };
-
     document.addEventListener("mousedown", handleClickOutside);
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
-
   useEffect(() => {
-    // Muat jadwal pendaftaran tersimpan di localStorage
     const savedSchedule = localStorage.getItem(REGISTRATION_SCHEDULE_KEY);
     if (!savedSchedule) return;
-
     try {
       setRegistrationSchedule({
         ...DEFAULT_REGISTRATION_SCHEDULE,
@@ -208,147 +167,109 @@ export default function AdminDashboard() {
       console.error("Gagal membaca jadwal pendaftaran:", error);
     }
   }, []);
-
   const handleScheduleChange = (field, value) => {
     setRegistrationSchedule((prev) => ({
       ...prev,
       [field]: value,
     }));
   };
-
   const handleSaveSchedule = () => {
     localStorage.setItem(REGISTRATION_SCHEDULE_KEY, JSON.stringify(registrationSchedule));
-    // Beri event storage agar halaman lain bisa mendeteksi perubahan
     window.dispatchEvent(new Event("storage"));
     setIsScheduleModalOpen(false);
-    alert("✅ Tanggal pendaftaran berhasil diperbarui");
+    alert("Tanggal pendaftaran berhasil diperbarui");
   };
-
-  // Daftar role untuk dropdown
   const updateStatus = async (id, newStatus) => {
     setUpdatingId(id);
     setUpdateError(null);
-
     try {
-      // Kirim PATCH ke backend untuk update status pendaftaran
       const response = await apiFetch(`/api/pendaftaran/santri/${id}/status`, {
         method: 'PATCH',
         body: JSON.stringify({
           status: newStatus,
         }),
       });
-
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Gagal memperbarui status');
       }
-
       const result = await response.json();
-
-      // Update state lokal tanpa re-fetch seluruh data
       setSantri(prevSantri =>
         prevSantri.map(s =>
           s.id === id ? { ...s, status: newStatus } : s
         )
       );
-
       const statusText = newStatus === 'accepted' ? 'Diterima' : 'Ditolak';
-      alert(`✅ Status berhasil diubah menjadi ${statusText}`);
-
-      // Reset filter jika data yang di-update tidak lagi sesuai filter
+      alert(`Status berhasil diubah menjadi ${statusText}`);
       if (statusFilter !== 'all' && statusFilter !== newStatus) {
         setStatusFilter('all');
       }
     } catch (err) {
       console.error('Error updating status:', err);
       setUpdateError(err.message || 'Terjadi kesalahan saat memperbarui status');
-      alert(`❌ Gagal memperbarui status: ${err.message || 'Silakan coba lagi'}`);
+      alert(`Gagal memperbarui status: ${err.message || 'Silakan coba lagi'}`);
     } finally {
       setUpdatingId(null);
     }
   };
-
   const handleDeleteSantri = async (id) => {
-    // Konfirmasi sebelum hapus (soft delete, data tetap di DB untuk arsip)
     const confirmation = confirm('Apakah Anda yakin ingin menghapus data pendaftaran ini?\n\nData akan di-soft delete dan tidak muncul di daftar utama, tetapi tetap disimpan di database untuk arsip.');
     if (!confirmation) return;
-
     try {
       const response = await apiFetch(`/api/pendaftaran/santri/${id}`, {
         method: 'DELETE',
       });
-
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Gagal menghapus data');
       }
-
-      // Hapus dari state lokal tanpa re-fetch
       setSantri(prevSantri => prevSantri.filter(s => s.id !== id));
-      alert('✅ Data pendaftaran berhasil dihapus');
+      alert('Data pendaftaran berhasil dihapus');
     } catch (err) {
       console.error('Error deleting santri:', err);
-      alert(`❌ Gagal menghapus data: ${err.message || 'Silakan coba lagi'}`);
+      alert(`Gagal menghapus data: ${err.message || 'Silakan coba lagi'}`);
     }
   };
-
   const handleStatusChange = (id, newStatus) => {
     const statusText = newStatus === 'accepted' ? 'DITERIMA' : 'DITOLAK';
-    // Konfirmasi perubahan status (tidak bisa dibatalkan)
     const confirmation = confirm(`Apakah Anda yakin ingin mengubah status pendaftaran ini menjadi ${statusText}?\n\nTindakan ini tidak dapat dibatalkan.`);
-
     if (confirmation) {
       updateStatus(id, newStatus);
     }
   };
-
-  // Daftar role untuk dropdown
   const handleViewDetail = (id) => {
     router.push(`/PrivateWeb/admin/santri/${id}`);
   };
-
-  // Retry
   const handleRetry = () => {
     setLoading(true);
     setError(null);
     window.location.reload();
   };
-
-  // Filter data berdasarkan tahun dan status
   const yearFilteredSantri = activeYear
     ? santri.filter((item) => String(item.tahun_pendaftaran) === activeYear)
     : santri;
-
   const filteredSantri = yearFilteredSantri.filter((item) => {
     const matchesStatus =
       statusFilter === "all" || item.status === statusFilter;
-
     return matchesStatus;
   });
-
-  // Pagination logic
   const itemsPerPage = 5;
   const totalPages = Math.ceil(filteredSantri.length / itemsPerPage);
   const paginatedSantri = filteredSantri.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage,
   );
-
-  // Statistik kartu dashboard
   const totalSantri = yearFilteredSantri.length;
   const pendingSantri = yearFilteredSantri.filter((s) => s.status === "pending").length;
-  // Diterima + completed dianggap sudah selesai verifikasi
   const acceptedSantri = yearFilteredSantri.filter(
     (s) => s.status === "accepted" || s.status === "completed",
   ).length;
   const rejectedSantri = yearFilteredSantri.filter(
     (s) => s.status === "rejected",
   ).length;
-
   return (
     <div className="min-h-screen bg-gray-50">
       <PrivateHeader />
-
       {loading ? (
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="text-center">
@@ -380,7 +301,6 @@ export default function AdminDashboard() {
            </span>
          </div>
          <section aria-labelledby="stats-heading" className="mb-8">
-
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <div className="bg-white rounded-xl shadow-md p-6 border-l-4 border-blue-500 hover:shadow-lg transition-shadow">
               <div className="flex items-center justify-between">
@@ -401,7 +321,6 @@ export default function AdminDashboard() {
                 </div>
               </div>
             </div>
-
             <div className="bg-white rounded-xl shadow-md p-6 border-l-4 border-yellow-500 hover:shadow-lg transition-shadow">
               <div className="flex items-center justify-between">
                 <div>
@@ -420,7 +339,6 @@ export default function AdminDashboard() {
                 </div>
               </div>
             </div>
-
             <div className="bg-white rounded-xl shadow-md p-6 border-l-4 border-green-500 hover:shadow-lg transition-shadow">
               <div className="flex items-center justify-between">
                 <div>
@@ -437,7 +355,6 @@ export default function AdminDashboard() {
                 </div>
               </div>
             </div>
-
             <div className="bg-white rounded-xl shadow-md p-6 border-l-4 border-red-500 hover:shadow-lg transition-shadow">
               <div className="flex items-center justify-between">
                 <div>
@@ -454,10 +371,9 @@ export default function AdminDashboard() {
             </div>
           </div>
         </section>
-        
         <section aria-labelledby="table-heading" className="mb-8">
           <div className="bg-white rounded-xl shadow-md">
-            {/* Header Section */}
+            {/* Header */}
             <div className="px-4 sm:px-6 py-4">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
                 <h2
@@ -466,10 +382,9 @@ export default function AdminDashboard() {
                 >
                   Daftar Calon Santri
                 </h2>
-
                 <div className="flex flex-col sm:flex-row sm:items-center gap-3 w-full sm:w-auto flex-wrap">
                   <div className="flex flex-wrap gap-2">
-                    {/* Dropdown Tahun */}
+                    {/* Year dropdown */}
                     <div
                       className="relative w-full sm:w-auto min-w-[160px]"
                       ref={yearDropdownRef}
@@ -481,14 +396,12 @@ export default function AdminDashboard() {
                         <span className="truncate">
                           {activeYear ? `Tahun ${activeYear}` : "Semua Tahun"}
                         </span>
-
                         <HiChevronDown
                           className={`w-4 h-4 ml-2 transition-transform duration-200 ${
                             isYearDropdownOpen ? "rotate-180" : ""
                           }`}
                         />
                       </button>
-
                       {isYearDropdownOpen && (
                         <div className="absolute z-20 mt-1 right-0 w-full bg-white border border-gray-200 rounded-lg shadow-lg py-1 max-h-60 overflow-y-auto">
                           {[
@@ -524,8 +437,7 @@ export default function AdminDashboard() {
                         </div>
                       )}
                     </div>
-
-                    {/* Dropdown Status */}
+                    {/* Status dropdown */}
                     <div
                       className="relative w-full sm:w-auto min-w-[160px]"
                       ref={dropdownRef}
@@ -541,14 +453,12 @@ export default function AdminDashboard() {
                           {statusFilter === "completed" && "Selesai"}
                           {statusFilter === "rejected" && "Ditolak"}
                         </span>
-
                         <HiChevronDown
                           className={`w-4 h-4 ml-2 transition-transform duration-200 ${
                             isStatusDropdownOpen ? "rotate-180" : ""
                           }`}
                         />
                       </button>
-
                       {isStatusDropdownOpen && (
                         <div className="absolute z-20 mt-1 right-0 w-full bg-white border border-gray-200 rounded-lg shadow-lg py-1 max-h-60 overflow-y-auto">
                           {[
@@ -577,7 +487,6 @@ export default function AdminDashboard() {
                       )}
                     </div>
                   </div>
-
                     <button
                       className="hidden sm:flex items-center justify-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium min-w-[120px]"
                       onClick={() => {
@@ -589,7 +498,6 @@ export default function AdminDashboard() {
                       <HiPrinter className="w-4 h-4 mr-2" />
                       Cetak Laporan
                     </button>
-
                     <button
                       className="hidden sm:flex items-center justify-center p-2 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium"
                       onClick={() => router.push('/PrivateWeb/admin/setting')}
@@ -598,7 +506,6 @@ export default function AdminDashboard() {
                       <HiCog className="w-5 h-5" />
                     </button>
                   </div>
-
                 <div className="sm:hidden grid grid-cols-1 gap-3">
                   <button
                     onClick={() => {
@@ -611,7 +518,6 @@ export default function AdminDashboard() {
                     <HiPrinter className="w-4 h-4 mr-2" />
                     Cetak Laporan
                   </button>
-
                   <button
                     onClick={() => router.push('/PrivateWeb/admin/setting')}
                     className="w-full px-4 py-2.5 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium flex items-center justify-center"
@@ -622,7 +528,6 @@ export default function AdminDashboard() {
                 </div>
               </div>
             </div>
-
             <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
               <div className="min-w-[580px] md:min-w-full">
                 <table className="min-w-full divide-y divide-gray-200 text-xs">
@@ -670,7 +575,7 @@ export default function AdminDashboard() {
                           </td>
                         <td className="px-2 py-2 sm:px-3 sm:py-2.5 whitespace-nowrap">
                           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-1.5">
-                            {/* Tombol Lihat Detail */}
+                            {/* View detail */}
                             <button
                               onClick={() => handleViewDetail(santri.id)}
                               className="p-1.5 rounded hover:bg-gray-100 transition-colors"
@@ -678,10 +583,9 @@ export default function AdminDashboard() {
                             >
                               <HiEye className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
                             </button>
-
                             {santri.status === "pending" && (
                               <>
-                                {/* Tombol Terima - dengan loading state */}
+                                {/* Accept with loading */}
                                 <button
                                   onClick={() => handleStatusChange(santri.id, "accepted")}
                                   disabled={updatingId === santri.id}
@@ -698,7 +602,6 @@ export default function AdminDashboard() {
                                     <HiCheck className="w-5 h-5 sm:w-6 sm:h-6 text-green-600" />
                                   )}
                                 </button>
-                                
                                 <button
                                   onClick={() => handleStatusChange(santri.id, "rejected")}
                                   disabled={updatingId === santri.id}
@@ -717,7 +620,6 @@ export default function AdminDashboard() {
                                 </button>
                               </>
                             )}
-
                             <button
                               onClick={() => handleDeleteSantri(santri.id)}
                               className="p-1.5 rounded hover:bg-red-100 transition-colors"
@@ -735,8 +637,7 @@ export default function AdminDashboard() {
                 </table>
               </div>
             </div>
-
-            {/* Page item */}
+            {/* Pagination */}
             <div className="px-4 sm:px-6 py-3 sm:py-4 border-t border-gray-200">
               <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
                 <div className="text-[11px] sm:text-sm text-gray-600 text-center sm:text-left">
@@ -781,7 +682,6 @@ export default function AdminDashboard() {
             </div>
           </div>
         </section>
-
         <section aria-labelledby="activity-heading">
           <div className="bg-white rounded-xl shadow-md p-6">
             <h2
@@ -827,13 +727,11 @@ export default function AdminDashboard() {
         </section>
       </main>
       )}
-      
       {updateError && (
         <div className="fixed bottom-4 right-4 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg animate-slide-in">
           <p className="font-medium">{updateError}</p>
         </div>
       )}
-
       {isScheduleModalOpen && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 px-4">
           <div className="w-full max-w-lg bg-white rounded-xl shadow-xl overflow-hidden">
@@ -845,7 +743,6 @@ export default function AdminDashboard() {
                 Tanggal ini akan tampil pada halaman awal di bagian Jadwal Pendaftaran.
               </p>
             </div>
-
             <div className="p-6 space-y-4">
               {[
                 { key: "wave1", label: "Gelombang I" },
@@ -866,7 +763,6 @@ export default function AdminDashboard() {
                 </div>
               ))}
             </div>
-
             <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex flex-col sm:flex-row justify-end gap-2">
               <button
                 type="button"
