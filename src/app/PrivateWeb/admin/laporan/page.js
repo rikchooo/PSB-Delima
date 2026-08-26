@@ -203,7 +203,7 @@ export default function LaporanPage() {
             <div className="mt-8 mb-16">
               <div className="flex flex-col items-center gap-1">
                  {settings.laporan_barcode && (
-                  <img src={settings.laporan_barcode} alt="Barcode" className="mb-1 h-12 w-auto object-contain" />
+                  <Image src={settings.laporan_barcode} alt="Barcode" className="mb-1 h-12 w-auto object-contain" />
                 )}
                 <p className="font-medium underline">{namaPanitia}</p>
                 <p className="text-xs text-gray-600">{jabatanPanitia}</p>
