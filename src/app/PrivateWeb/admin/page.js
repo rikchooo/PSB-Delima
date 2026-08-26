@@ -4,7 +4,7 @@ import { apiFetch } from "@/lib/api";
 import { getAuthToken, getPrivateSession } from "@/lib/auth";
 import { useRouter } from "next/navigation";
 import PrivateHeader from "@/components/PrivateHeader";
-import { HiUsers, HiClock, HiCheckCircle, HiXCircle, HiPrinter, HiChevronDown, HiTrendingUp, HiExclamation, HiEye, HiCheck, HiX, HiSave, HiCog, HiSwitchHorizontal } from "react-icons/hi";
+import { HiUsers, HiClock, HiCheckCircle, HiXCircle, HiPrinter, HiChevronDown, HiTrendingUp, HiExclamation, HiEye, HiCheck, HiX, HiSave, HiCog } from "react-icons/hi";
 const REGISTRATION_SCHEDULE_KEY = "registration_schedule";
 const DEFAULT_REGISTRATION_SCHEDULE = {
   wave1: "1 Jan - 31 Mar 2026",
@@ -84,7 +84,7 @@ export default function AdminDashboard() {
           const pendaftaranRes = await apiFetch('/api/settings/pendaftaran_aktif');
           if (pendaftaranRes.ok) {
             const pendaftaranData = await pendaftaranRes.json();
-            setPendaftaranAktif(!!pendaftaranData.pendaftaran_aktif);
+            setPendaftaranAktif(!!pendaftaranData.data.pendaftaran_aktif);
           }
         } catch (pendaftaranErr) {
           console.error('Failed to fetch pendaftaran aktif:', pendaftaranErr);
@@ -125,6 +125,9 @@ export default function AdminDashboard() {
           createdAt: item.created_at ? new Date(item.created_at) : new Date(),
           address: item.alamat_santri || '-',
           tahun_pendaftaran: item.tahun_pendaftaran,
+          hasExam: !!(item.penilaian && (item.penilaian.nilai_alquran !== null || item.penilaian.nilai_kitab !== null)),
+          paymentId: item.pembayaran?.[0]?.id || null,
+          paymentStatus: item.pembayaran?.[0]?.status_pembayaran || 'pending',
         }));
         mappedSantri.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
         setSantri(mappedSantri);
@@ -191,7 +194,7 @@ export default function AdminDashboard() {
       });
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || 'Gagal memperbarui status');
+        throw new Error(errorData.error || 'Gagal memperbarui status');
       }
       const result = await response.json();
       setSantri(prevSantri =>
@@ -249,8 +252,9 @@ export default function AdminDashboard() {
     ? santri.filter((item) => String(item.tahun_pendaftaran) === activeYear)
     : santri;
   const filteredSantri = yearFilteredSantri.filter((item) => {
+    const effectiveStatus = item.hasExam ? "completed" : (item.status === "submitted" ? "pending" : item.status);
     const matchesStatus =
-      statusFilter === "all" || item.status === statusFilter;
+      statusFilter === "all" || effectiveStatus === statusFilter;
     return matchesStatus;
   });
   const itemsPerPage = 5;
@@ -260,12 +264,12 @@ export default function AdminDashboard() {
     currentPage * itemsPerPage,
   );
   const totalSantri = yearFilteredSantri.length;
-  const pendingSantri = yearFilteredSantri.filter((s) => s.status === "pending").length;
+  const pendingSantri = yearFilteredSantri.filter((s) => (s.status === "pending" || s.status === "submitted") && !s.hasExam).length;
   const acceptedSantri = yearFilteredSantri.filter(
-    (s) => s.status === "accepted" || s.status === "completed",
+    (s) => (s.status === "accepted" || s.status === "completed" || s.hasExam),
   ).length;
   const rejectedSantri = yearFilteredSantri.filter(
-    (s) => s.status === "rejected",
+    (s) => s.status === "rejected" && !s.hasExam,
   ).length;
   return (
     <div className="min-h-screen bg-gray-50">
@@ -313,7 +317,7 @@ export default function AdminDashboard() {
                   </p>
                   <p className="text-sm text-green-600 mt-1 flex items-center">
                     <HiTrendingUp className="w-4 h-4 mr-1" />
-                    {((pendingSantri / totalSantri) * 100).toFixed(1)}% menunggu
+                    {totalSantri > 0 ? ((pendingSantri / totalSantri) * 100).toFixed(1) : '0'}% menunggu
                   </p>
                 </div>
                 <div className="bg-blue-100 p-3 rounded-full">
@@ -563,12 +567,14 @@ export default function AdminDashboard() {
                         </td>
                           <td className="px-2 py-2 sm:px-3 sm:py-2.5 whitespace-nowrap">
                             <span className={`px-1.5 py-0.5 sm:px-2 sm:py-1 inline-flex text-[10px] sm:text-xs font-medium rounded-full ${
-                              santri.status === "pending" ? "bg-yellow-100 text-yellow-800" :
+                              santri.hasExam ? "bg-blue-100 text-blue-800" :
+                              santri.status === "pending" || santri.status === "submitted" ? "bg-yellow-100 text-yellow-800" :
                               santri.status === "accepted" ? "bg-green-100 text-green-800" :
                               santri.status === "completed" ? "bg-blue-100 text-blue-800" :
                               "bg-red-100 text-red-800"
                             }`}>
-                              {santri.status === "pending" ? "Menunggu" :
+                              {santri.hasExam ? "Selesai" :
+                              santri.status === "pending" || santri.status === "submitted" ? "Menunggu" :
                               santri.status === "accepted" ? "Diterima" :
                               santri.status === "completed" ? "Selesai" : "Ditolak"}
                             </span>
@@ -583,7 +589,7 @@ export default function AdminDashboard() {
                             >
                               <HiEye className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
                             </button>
-                            {santri.status === "pending" && (
+                            {(santri.status === "pending" || santri.status === "submitted") && !santri.hasExam && (
                               <>
                                 {/* Accept with loading */}
                                 <button
@@ -681,50 +687,7 @@ export default function AdminDashboard() {
               </div>
             </div>
           </div>
-        </section>
-        <section aria-labelledby="activity-heading">
-          <div className="bg-white rounded-xl shadow-md p-6">
-            <h2
-              id="activity-heading"
-              className="text-lg font-semibold text-gray-900 mb-4"
-            >
-              Aktivitas Terbaru
-            </h2>
-            <div className="space-y-4">
-              {yearFilteredSantri.slice(0, 5).map((item) => (
-                <div
-                  key={item.id}
-                  className="flex items-start space-x-3 border-b pb-3 last:border-0 hover:bg-gray-50 rounded-lg p-2 -mx-2 cursor-pointer transition-colors"
-                  onClick={() => handleViewDetail(item.id)}
-                >
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
-                    item.status === 'pending' ? 'bg-yellow-100' : 
-                    item.status === 'accepted' ? 'bg-green-100' :
-                    item.status === 'completed' ? 'bg-blue-100' : 'bg-red-100'
-                  }`}>
-                    {item.status === 'accepted' ? <HiCheckCircle className="w-5 h-5 text-green-600" /> : 
-                          item.status === 'rejected' ? <HiXCircle className="w-5 h-5 text-red-600" /> :
-                          item.status === 'completed' ? <HiCheckCircle className="w-5 h-5 text-blue-600" /> :
-                          <HiClock className="w-5 h-5 text-yellow-600" />}
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-medium text-gray-900">
-                      {item.status === 'accepted' ? 'Pendaftaran Diterima' : 
-                      item.status === 'rejected' ? 'Pendaftaran Ditolak' :
-                      item.status === 'completed' ? 'Pendaftaran Selesai' : 'Pendaftaran Baru'}
-                    </p>
-                    <p className="text-sm text-gray-600">
-                      {item.name} mendaftar - {item.phone} santri baru
-                    </p>
-                    <p className="text-xs text-gray-500 mt-1">
-                      {item.date}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
+</section>
       </main>
       )}
       {updateError && (

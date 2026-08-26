@@ -62,7 +62,7 @@ export default function LaporanPage() {
             ttl: `${item.tempat_lahir}, ${item.tanggal_lahir}`,
             anakKe: item.anak_ke,
             pendidikan: item.pendidikan_terakhir,
-            alamat: item.alamat_santri,
+            alamat: `${item.alamat_santri || ''} ${item.desa_santri || ''} ${item.kecamatan_santri || ''} ${item.kabupaten_santri || ''} ${item.provinsi_santri || ''}`.trim() || '-',
             ayah: item.nama_ayah,
             ibu: item.nama_ibu,
             telp: item.telp_ayah,
@@ -202,8 +202,8 @@ export default function LaporanPage() {
             <p>Situbondo, {new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}</p>
             <div className="mt-8 mb-16">
               <div className="flex flex-col items-center gap-1">
-                {settings.laporan_barcode && (
-                  <Image src={settings.laporan_barcode} alt="Barcode" width={120} height={48} className="mb-1 h-12 w-auto object-contain" />
+                 {settings.laporan_barcode && (
+                  <img src={settings.laporan_barcode} alt="Barcode" className="mb-1 h-12 w-auto object-contain" />
                 )}
                 <p className="font-medium underline">{namaPanitia}</p>
                 <p className="text-xs text-gray-600">{jabatanPanitia}</p>

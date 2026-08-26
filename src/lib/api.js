@@ -48,8 +48,11 @@ export async function apiFetch(path, options = {}) {
   const contentType = response.headers.get('content-type');
   if (!contentType || !contentType.includes('application/json')) {
     const text = await response.text();
-    console.error('Non-JSON response from', url, ':', text.substring(0, 200));
-    throw new Error(`Server mengembalikan respons non-JSON (status: ${response.status}). Pastikan backend berjalan dengan benar.`);
+    const looksLikeJson = text.trim().startsWith('{') || text.trim().startsWith('[');
+    if (!looksLikeJson) {
+      console.error('Non-JSON response from', url, ':', text.substring(0, 200));
+      throw new Error(`Server mengembalikan respons non-JSON (status: ${response.status}). Pastikan backend berjalan dengan benar.`);
+    }
   }
 
   return response;

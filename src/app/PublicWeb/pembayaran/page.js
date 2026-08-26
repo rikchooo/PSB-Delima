@@ -1,17 +1,38 @@
-
 "use client";
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { apiFetch } from "@/lib/api";
 import { getAuthToken } from "@/lib/auth";
-import { HiCheck, HiInformationCircle, HiOutlineOfficeBuilding, HiClipboard, HiExclamation, HiClock, HiCloudUpload, HiRefresh, HiPaperAirplane, HiCheckCircle, HiPrinter, HiExclamationCircle } from "react-icons/hi";
+import {
+  HiCheck,
+  HiInformationCircle,
+  HiOutlineOfficeBuilding,
+  HiClipboard,
+  HiExclamation,
+  HiCloudUpload,
+  HiRefresh,
+  HiPaperAirplane,
+  HiCheckCircle,
+  HiPrinter,
+  HiExclamationCircle,
+  HiClock,
+} from "react-icons/hi";
+
 export default function PembayaranPage() {
   const router = useRouter();
   const [buktiPembayaran, setBuktiPembayaran] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [paymentStatus, setPaymentStatus] = useState("pending");
+  const [paymentStatus, setPaymentStatus] = useState(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("payment_status");
+      if (["confirmed", "lunas", "success"].includes(saved)) return "success";
+      if (saved === "submitted") return "waiting";
+    }
+    return "pending";
+  });
   const [uploadError, setUploadError] = useState("");
   const [userEmail, setUserEmail] = useState("");
+
   useEffect(() => {
     if (typeof window !== "undefined") {
       if (!getAuthToken()) {
@@ -28,41 +49,45 @@ export default function PembayaranPage() {
       setUserEmail(email);
       const fetchPaymentStatus = async () => {
         try {
-          const response = await apiFetch(`/api/pendaftaran/status/${encodeURIComponent(email)}`);
-          if (response.ok) {
-            const data = await response.json();
-            const backendStatus = data.payment_status || "";
-            const confirmedStatuses = ["confirmed", "lunas", "success"];
-            const isConfirmed = confirmedStatuses.includes(backendStatus);
-            const hasSubmittedProof =
-              backendStatus === "submitted" ||
-              localStorage.getItem("payment_status") === "submitted";
-            if (isConfirmed) {
-              setPaymentStatus("success");
-              localStorage.setItem("payment_status", backendStatus);
-            } else if (hasSubmittedProof) {
-              setPaymentStatus("success");
-            } else {
-              setPaymentStatus("pending");
-              localStorage.removeItem("payment_status");
+          const response = await apiFetch(
+            `/api/pendaftaran/status/${encodeURIComponent(email)}`,
+          );
+           if (response.ok) {
+              const data = await response.json();
+              const backendStatus = data.data?.payment_status || "";
+              const confirmedStatuses = ["confirmed", "lunas", "success"];
+              if (confirmedStatuses.includes(backendStatus)) {
+                setPaymentStatus("success");
+                localStorage.setItem("payment_status", backendStatus);
+              } else if (backendStatus === "submitted") {
+                setPaymentStatus("waiting");
+                localStorage.setItem("payment_status", backendStatus);
+              } else {
+                setPaymentStatus("pending");
+                localStorage.removeItem("payment_status");
+              }
+            } else if (localStorage.getItem("payment_status") === "submitted") {
+              setPaymentStatus("waiting");
             }
-          }
         } catch (error) {
           console.error("Failed to fetch payment status:", error);
+          setPaymentStatus("pending");
+          localStorage.removeItem("payment_status");
         }
       };
       const fetchBiaya = async () => {
         try {
-          const settingsRes = await apiFetch('/api/settings');
+          const settingsRes = await apiFetch("/api/settings");
           let activeYear = new Date().getFullYear();
           if (settingsRes.ok) {
             const settingsData = await settingsRes.json();
             activeYear = parseInt(settingsData.data?.active_year) || activeYear;
+            setKodeBayar(`DTJR-${activeYear}`);
           }
           const biayaRes = await apiFetch(`/api/settings/biaya/${activeYear}`);
           if (biayaRes.ok) {
             const biayaData = await biayaRes.json();
-            setBiaya(biayaData.biaya || 0);
+            setBiaya(biayaData.data?.biaya || 0);
           }
         } catch (error) {
           console.error("Failed to fetch biaya:", error);
@@ -72,13 +97,18 @@ export default function PembayaranPage() {
       fetchBiaya();
     }
   }, [router]);
+
+  const [biaya, setBiaya] = useState(0);
+  const [kodeBayar, setKodeBayar] = useState(
+    () => `DTJR-${new Date().getFullYear()}`,
+  );
   const rekeningInfo = {
     bank: "BSI (Bank Syariah Indonesia)",
     nomor: "7258945578",
     nama: "Yayasan Delima Tanjung Rejo",
-    kodeBayar: "DTJR-2026",
+    kodeBayar,
   };
-  const [biaya, setBiaya] = useState(0);
+
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -98,6 +128,7 @@ export default function PembayaranPage() {
       setBuktiPembayaran(file);
     }
   };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!buktiPembayaran) {
@@ -112,12 +143,16 @@ export default function PembayaranPage() {
     setUploadError("");
     try {
       if (!process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME) {
-        throw new Error('Konfigurasi Cloudinary tidak lengkap: CLOUD_NAME tidak ditemukan');
+        throw new Error(
+          "Konfigurasi Cloudinary tidak lengkap: CLOUD_NAME tidak ditemukan",
+        );
       }
       if (!process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET) {
-        throw new Error('Konfigurasi Cloudinary tidak lengkap: UPLOAD_PRESET tidak ditemukan');
+        throw new Error(
+          "Konfigurasi Cloudinary tidak lengkap: UPLOAD_PRESET tidak ditemukan",
+        );
       }
-      console.log('Starting payment proof upload:', {
+      console.log("Starting payment proof upload:", {
         fileName: buktiPembayaran.name,
         fileSize: buktiPembayaran.size,
         fileType: buktiPembayaran.type,
@@ -135,33 +170,29 @@ export default function PembayaranPage() {
         buktiPembayaran.type.startsWith("image/") ? "image" : "raw",
       );
       const cloudinaryUrl = `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/upload`;
-      console.log('Uploading to:', cloudinaryUrl);
-      const cloudinaryResponse = await fetch(
-        cloudinaryUrl,
-        {
-          method: "POST",
-          body: formDataUpload,
-        },
-      );
+      console.log("Uploading to:", cloudinaryUrl);
+      const cloudinaryResponse = await fetch(cloudinaryUrl, {
+        method: "POST",
+        body: formDataUpload,
+      });
       let cloudinaryData;
       try {
         cloudinaryData = await cloudinaryResponse.json();
       } catch (parseError) {
-        console.error('Failed to parse Cloudinary response:', parseError);
+        console.error("Failed to parse Cloudinary response:", parseError);
         const textResponse = await cloudinaryResponse.text();
-        console.error('Response text:', textResponse);
+        console.error("Response text:", textResponse);
         throw new Error(
-          `Server Cloudinary mengembalikan respons tidak valid (status: ${cloudinaryResponse.status})`
+          `Server Cloudinary mengembalikan respons tidak valid (status: ${cloudinaryResponse.status})`,
         );
       }
       if (!cloudinaryResponse.ok) {
-        const errorMsg = cloudinaryData?.error?.message ||
+        const errorMsg =
+          cloudinaryData?.error?.message ||
           cloudinaryData?.error ||
           `HTTP ${cloudinaryResponse.status}`;
         console.error("Cloudinary error response:", cloudinaryData);
-        throw new Error(
-          `Upload ke Cloudinary gagal: ${errorMsg}`,
-        );
+        throw new Error(`Upload ke Cloudinary gagal: ${errorMsg}`);
       }
       if (cloudinaryData.error) {
         console.error("Cloudinary error:", cloudinaryData);
@@ -170,12 +201,12 @@ export default function PembayaranPage() {
         );
       }
       if (!cloudinaryData.secure_url) {
-        console.error('No secure_url in response:', cloudinaryData);
-        throw new Error('Upload berhasil tetapi tidak mendapat URL file');
+        console.error("No secure_url in response:", cloudinaryData);
+        throw new Error("Upload berhasil tetapi tidak mendapat URL file");
       }
-      console.log('Upload successful:', {
+      console.log("Upload successful:", {
         url: cloudinaryData.secure_url,
-        publicId: cloudinaryData.public_id
+        publicId: cloudinaryData.public_id,
       });
       const response = await apiFetch(`/api/pembayaran`, {
         method: "POST",
@@ -213,7 +244,7 @@ export default function PembayaranPage() {
           },
         }),
       );
-      setPaymentStatus("success");
+      setPaymentStatus("waiting");
       setTimeout(() => {
         alert(
           "Bukti pembayaran berhasil dikirim!\n\nSilakan tunggu konfirmasi dari panitia.",
@@ -224,258 +255,255 @@ export default function PembayaranPage() {
       setPaymentStatus("failed");
       setUploadError(
         error.message ||
-        "Terjadi kesalahan saat memproses pembayaran. Silakan coba lagi.",
+          "Terjadi kesalahan saat memproses pembayaran. Silakan coba lagi.",
       );
     } finally {
       setIsSubmitting(false);
     }
   };
+
   return (
-    <div className="min-h-screen bg-gray-50 px-4 py-12">
-      <div className="max-w-4xl mx-auto">
-        <div className="text-center mb-12">
-          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3">
+    <div className="min-h-screen bg-slate-50 text-slate-900 pb-12">
+      {/* Header Section */}
+      <div className="py-8">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 text-center">
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight mx-auto">
             Pembayaran Pendaftaran Santri
           </h1>
-          <p className="text-gray-600 max-w-2xl mx-auto">
-            Selesaikan pembayaran untuk mengaktifkan pendaftaran Santi Anda
+          <p className="text-sm text-slate-500 mt-1 max-w-2xl mx-auto">
+            Selesaikan administrasi keuangan untuk mengaktifkan pendaftaran
+            santri Anda.
           </p>
         </div>
-        <section className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-          <div className="px-6 py-5 border-b border-gray-200">
-            <h2 className="text-xl font-bold text-gray-800 flex items-center">
-              <HiInformationCircle className="w-6 h-6 mr-3" />
-              Informasi Pembayaran
+      </div>
+
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 space-y-6">
+        {/* SECTION 1: INFORMASI PEMBAYARAN */}
+        <section className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
+          <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+            <h2 className="font-semibold text-slate-900 flex items-center gap-2">
+              <HiInformationCircle className="w-5 h-5 text-slate-500" />
+              Informasi Transfer
             </h2>
           </div>
+
           <div className="p-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              <div className="space-y-5">
-                <div className="bg-gray-50 rounded-xl p-5 border border-gray-200">
-                  <label className="block text-xs font-medium text-gray-500 mb-2">
-                    BANK TUJUAN
-                  </label>
-                  <div className="flex items-center space-x-4">
-                    <div className="w-12 h-12 rounded-xl bg-white border border-gray-200 flex items-center justify-center flex-shrink-0">
-                      <HiOutlineOfficeBuilding className="w-8 h-8 text-green-600" />
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+              {/* Left Column: Bank Details */}
+              <div className="lg:col-span-7 space-y-4">
+                <div className="flex flex-col sm:flex-row gap-4">
+                  {/* Bank Card */}
+                  <div className="flex-1 p-4 border border-slate-200 rounded-md bg-slate-50 flex items-center gap-4">
+                    <div className="w-10 h-10 rounded bg-white border border-slate-200 flex items-center justify-center shrink-0">
+                      <HiOutlineOfficeBuilding className="w-6 h-6 text-green-700" />
                     </div>
-                    <span className="text-lg font-bold text-gray-800">
-                      {rekeningInfo.bank}
-                    </span>
+                    <div>
+                      <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
+                        Bank Tujuan
+                      </p>
+                      <p className="font-bold text-slate-900">
+                        {rekeningInfo.bank}
+                      </p>
+                    </div>
                   </div>
-                </div>
-                <div className="bg-gray-50 rounded-xl p-5 border border-gray-200">
-                  <label className="block text-xs font-medium text-gray-500 mb-2">
-                    NOMOR REKENING
-                  </label>
-                  <div className="flex items-center justify-between">
-                    <span className="font-mono font-bold text-lg text-gray-800">
-                      {rekeningInfo.nomor}
-                    </span>
-                    <button
-                      onClick={() =>
-                        navigator.clipboard.writeText(rekeningInfo.nomor)
-                      }
-                      className="p-2.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-xl transition-colors"
-                      title="Salin nomor rekening"
-                    >
-                      <HiClipboard className="w-6 h-6" />
-                    </button>
-                  </div>
-                </div>
-                <div className="bg-gray-50 rounded-xl p-5 border border-gray-200">
-                  <label className="block text-xs font-medium text-gray-500 mb-2">
-                    ATAS NAMA
-                  </label>
-                  <p className="font-bold text-lg text-gray-800">
-                    {rekeningInfo.nama}
-                  </p>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-gray-50 rounded-xl p-5 border border-gray-200">
-                    <label className="block text-xs font-medium text-gray-500 mb-2">
-                      NOMINAL
-                    </label>
-                    <p className="font-bold text-xl text-gray-800">
+
+                  {/* Nominal Card */}
+                  <div className="flex-1 p-4 border border-slate-200 rounded-md bg-slate-50">
+                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1">
+                      Nominal Transfer
+                    </p>
+                    <p className="text-xl font-bold text-slate-900 tracking-tight">
                       {biaya ? `Rp ${biaya.toLocaleString("id-ID")}` : "Rp -"}
                     </p>
                   </div>
-                  <div className="bg-gray-50 rounded-xl p-5 border border-gray-200">
-                    <label className="block text-xs font-medium text-gray-500 mb-2">
-                      KODE BAYAR
-                    </label>
-                    <div className="flex items-center justify-between">
-                      <span className="font-mono font-bold text-lg text-gray-800">
-                        {rekeningInfo.kodeBayar}
-                      </span>
-                      <button
-                        onClick={() =>
-                          navigator.clipboard.writeText(rekeningInfo.kodeBayar)
-                        }
-                        className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-xl transition-colors"
-                        title="Salin kode pembayaran"
-                      >
-                        <HiClipboard className="w-5 h-5 text-gray-500" />
-                      </button>
-                    </div>
-                  </div>
                 </div>
-                <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
-                  <div className="flex items-start">
-                    <HiExclamation className="w-5 h-5 text-amber-500 mr-2 mt-0.5 flex-shrink-0" />
-                    <p className="text-sm text-gray-700">
-                      <span className="font-medium">Penting:</span> Gunakan kode
-                      bayar sebagai berita transfer untuk mempermudah verifikasi
+
+                {/* Account Number Row */}
+                <div className="p-4 border border-slate-200 rounded-md flex items-center justify-between group hover:border-slate-300 transition-colors">
+                  <div>
+                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1">
+                      No. Rekening
+                    </p>
+                    <p className="font-mono text-lg font-bold text-slate-900">
+                      {rekeningInfo.nomor}
                     </p>
                   </div>
+                  <button
+                    onClick={() =>
+                      navigator.clipboard.writeText(rekeningInfo.nomor)
+                    }
+                    className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                    title="Salin nomor rekening"
+                  >
+                    <HiClipboard className="w-5 h-5" />
+                  </button>
+                </div>
+
+                {/* Name & Code Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="p-4 border border-slate-200 rounded-md">
+                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1">
+                      Atas Nama
+                    </p>
+                    <p className="font-semibold text-slate-900 text-sm leading-snug">
+                      {rekeningInfo.nama}
+                    </p>
+                  </div>
+                  <div className="p-4 border border-slate-200 rounded-md flex items-center justify-between">
+                    <div>
+                      <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1">
+                        Kode Bayar
+                      </p>
+                      <p className="font-mono font-bold text-slate-900">
+                        {rekeningInfo.kodeBayar}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() =>
+                        navigator.clipboard.writeText(rekeningInfo.kodeBayar)
+                      }
+                      className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                      title="Salin kode pembayaran"
+                    >
+                      <HiClipboard className="w-5 h-5" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Warning Box */}
+                <div className="flex items-start gap-3 p-3 bg-amber-50 border border-amber-100 rounded text-sm text-amber-800">
+                  <HiExclamation className="w-5 h-5 shrink-0 mt-0.5 text-amber-500" />
+                  <p>
+                    <span className="font-bold">PENTING:</span> Wajib
+                    mencantumkan <strong>KODE BAYAR</strong> pada berita
+                    transfer untuk verifikasi otomatis.
+                  </p>
                 </div>
               </div>
-              <div className="bg-gray-50 rounded-2xl p-6 border border-gray-200">
-                <h3 className="font-bold text-lg text-gray-800 mb-4 flex items-center">
-                  <HiClipboard className="w-5 h-5 mr-2 text-green-600" />
-                  Langkah Pembayaran
+
+              {/* Right Column: Steps */}
+              <div className="lg:col-span-5 bg-slate-50 border border-slate-200 rounded-md p-5 h-fit">
+                <h3 className="font-semibold text-slate-900 mb-4 text-sm uppercase tracking-wide flex items-center gap-2">
+                  <HiClipboard className="w-4 h-4 text-slate-500" /> Alur
+                  Pembayaran
                 </h3>
-                <ol className="space-y-3">
+                <ol className="space-y-4 relative border-l border-slate-200 ml-2 pl-4">
                   {[
                     "Transfer ke rekening di atas sesuai nominal",
                     "Simpan bukti transfer (screenshot/nota)",
                     "Upload bukti transfer pada form di bawah",
                     "Tunggu konfirmasi melalui notifikasi",
                   ].map((step, index) => (
-                    <li key={index} className="flex items-start">
-                      <div className="w-6 h-6 rounded-full bg-gray-200 text-gray-700 flex items-center justify-center mr-3 mt-1 flex-shrink-0 text-sm font-bold">
-                        {index + 1}
-                      </div>
-                      <span className="text-gray-700">{step}</span>
+                    <li key={index} className="relative">
+                      <div className="absolute -left-[21px] top-1 w-4 h-4 rounded-full bg-white border-2 border-slate-300"></div>
+                      <span className="text-sm text-slate-600 leading-relaxed block pt-0.5">
+                        {step}
+                      </span>
                     </li>
                   ))}
                 </ol>
-                <div className="mt-6 pt-4 border-t border-gray-200">
-                  <div className="text-center">
-                    <div className="w-12 h-12 rounded-xl bg-gray-100 mx-auto mb-3 flex items-center justify-center">
-                      <HiClock className="w-6 h-6 text-gray-500" />
-                    </div>
-                    <h4 className="font-bold text-lg text-gray-800 mb-2">
-                      Batas Waktu Pembayaran
-                    </h4>
-                    <p className="text-2xl font-bold text-gray-900 mb-1">
-                      24 Jam
-                    </p>
-                    <p className="text-gray-600 text-sm">
-                      Setelah pendaftaran dibuat
-                    </p>
-                  </div>
+
+                <div className="mt-6 pt-4 border-t border-slate-200 text-center">
+                  <p className="text-xs text-slate-500 mb-1">
+                    Batas Waktu Pembayaran
+                  </p>
+                  <p className="text-2xl font-bold text-slate-900">24 Jam</p>
+                  <p className="text-xs text-slate-500">
+                    Setelah pendaftaran dibuat
+                  </p>
                 </div>
               </div>
             </div>
           </div>
         </section>
+
+        {/* SECTION 2: UPLOAD FORM (Pending State) */}
         {paymentStatus === "pending" && (
-          <section className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-            <div className="px-6 py-5 border-b border-gray-200">
-              <h2 className="text-xl font-bold text-gray-800 flex items-center">
-                <HiCloudUpload className="w-6 h-6 text-green-600" />
+          <section className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
+            <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50">
+              <h2 className="font-semibold text-slate-900 flex items-center gap-2">
+                <HiCloudUpload className="w-5 h-5 text-slate-500" />
                 Upload Bukti Pembayaran
               </h2>
             </div>
-            <div className="p-6">
-              <div className="border-2 border-dashed border-gray-300 rounded-2xl p-10 md:p-12 text-center transition-all duration-300 hover:border-gray-400 hover:bg-gray-50">
+
+            <div className="p-6 max-w-2xl mx-auto">
+              <div className="border-2 border-dashed border-slate-300 rounded-lg p-8 text-center hover:bg-slate-50 hover:border-slate-400 transition-colors relative min-h-[240px] flex flex-col justify-center">
                 <input
                   type="file"
                   id="buktiPembayaran"
                   accept="image/*,.png, .jpg, .jpeg"
                   onChange={handleFileChange}
-                  className="hidden"
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                 />
-                <label
-                  htmlFor="buktiPembayaran"
-                  className="cursor-pointer flex flex-col items-center justify-center"
-                >
-                  {!buktiPembayaran ? (
-                    <>
-                      <div className="w-20 h-20 bg-gray-100 rounded-2xl flex items-center justify-center mb-5">
-                        <HiCloudUpload className="w-10 h-10 text-gray-400" />
-                      </div>
-                      <p className="text-lg font-medium text-gray-800 mb-2">
-                        <span className="text-green-600 font-bold hover:underline">
-                          Klik untuk memilih file
-                        </span>{" "}
-                        atau drag & drop
-                      </p>
-                      <p className="text-gray-500">
-                        JPG, JPEG, PNG • Maks. 2MB
-                      </p>
-                    </>
-                  ) : (
-                    <div className="flex flex-col items-center">
-                      <div className="w-20 h-20 bg-gray-100 rounded-2xl flex items-center justify-center mb-5">
-                        <HiCheck className="w-10 h-10 text-green-600" />
-                      </div>
-                      <p className="font-bold text-lg text-gray-800 mb-1">
-                        {buktiPembayaran.name}
-                      </p>
-                      <p className="text-gray-500 mb-4">
-                        {(buktiPembayaran.size / 1024).toFixed(1)} KB
-                      </p>
-                      <button
-                        type="button"
-                        onClick={() => setBuktiPembayaran(null)}
-                        className="text-sm font-medium text-green-600 hover:text-green-800 flex items-center"
-                      >
-                        <HiRefresh className="w-4 h-4 mr-1.5" />
-                        Ganti file
-                      </button>
+
+                {!buktiPembayaran ? (
+                  <div className="pointer-events-none">
+                    <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <HiCloudUpload className="w-8 h-8 text-slate-400" />
                     </div>
-                  )}
-                </label>
+                    <p className="text-sm font-medium text-slate-900 mb-1">
+                      Klik atau seret file bukti transfer ke sini
+                    </p>
+                    <p className="text-xs text-slate-500">
+                      Format: JPG, JPEG, PNG • Maks. 2MB
+                    </p>
+                  </div>
+                ) : (
+                  <div className="relative z-20 pointer-events-auto">
+                    <div className="w-16 h-16 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-green-100">
+                      <HiCheck className="w-8 h-8 text-green-600" />
+                    </div>
+                    <p className="text-sm font-bold text-slate-900 truncate max-w-xs mx-auto">
+                      {buktiPembayaran.name}
+                    </p>
+                    <p className="text-xs text-slate-500 mb-4">
+                      {(buktiPembayaran.size / 1024).toFixed(1)} KB
+                    </p>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setBuktiPembayaran(null);
+                      }}
+                      className="text-xs font-medium text-red-600 hover:text-red-700 inline-flex items-center gap-1 px-3 py-1 rounded hover:bg-red-50 transition-colors"
+                    >
+                      <HiRefresh className="w-3 h-3" /> Ganti File
+                    </button>
+                  </div>
+                )}
               </div>
+
               {uploadError && (
-                <div className="mt-5 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm flex items-start">
-                  <HiExclamationCircle className="w-5 h-5 mr-2 mt-0.5 flex-shrink-0 text-red-500" />
+                <div className="mt-4 p-3 bg-red-50 border border-red-100 rounded text-sm text-red-700 flex items-start gap-2">
+                  <HiExclamationCircle className="w-5 h-5 shrink-0 text-red-500 mt-0.5" />
                   <span>{uploadError}</span>
                 </div>
               )}
-              <div className="mt-8 pt-6 border-t flex justify-center">
+
+              <div className="mt-8 flex justify-end pt-6 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={handleSubmit}
                   disabled={isSubmitting || !buktiPembayaran}
-                  className={`px-8 py-4 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl 
-                      transition-all duration-300 shadow-sm hover:shadow-md 
-                      flex items-center justify-center space-x-2 min-w-[160px]
-                      ${isSubmitting || !buktiPembayaran
-                      ? "opacity-70 cursor-not-allowed"
-                      : "active:scale-[0.98] hover:scale-[1.02]"
-                    }`}
+                  className={`
+                    px-6 py-2.5 rounded text-sm font-medium flex items-center gap-2 min-w-[160px] justify-center
+                    ${
+                      isSubmitting || !buktiPembayaran
+                        ? "bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200"
+                        : "bg-blue-600 text-white hover:bg-blue-700 shadow-sm border border-transparent"
+                    }
+                  `}
                 >
                   {isSubmitting ? (
                     <>
-                      <svg
-                        className="animate-spin w-5 h-5 text-white"
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                      >
-                        <circle
-                          className="opacity-25"
-                          cx="12"
-                          cy="12"
-                          r="10"
-                          stroke="currentColor"
-                          strokeWidth="4"
-                        ></circle>
-                        <path
-                          className="opacity-75"
-                          fill="currentColor"
-                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                        ></path>
-                      </svg>
-                      <span>Memproses...</span>
+                      <HiRefresh className="w-4 h-4 animate-spin" />
+                      Memproses...
                     </>
                   ) : (
                     <>
-                      <HiPaperAirplane className="w-5 h-5" />
-                      <span>Kirim Bukti</span>
+                      <HiPaperAirplane className="w-4 h-4" />
+                      Kirim Bukti
                     </>
                   )}
                 </button>
@@ -483,48 +511,87 @@ export default function PembayaranPage() {
             </div>
           </section>
         )}
-        {paymentStatus === "success" && (
-          <section className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-            <div className="px-6 py-5 border-b border-gray-200">
-              <h2 className="text-xl font-bold text-gray-800 flex items-center">
-                <HiCheckCircle className="w-6 h-6 text-green-600 mr-3" />
-                Konfirmasi & Jadwal
+
+        {/* SECTION 2B: WAITING CONFIRMATION */}
+        {paymentStatus === "waiting" && (
+          <section className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
+            <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50">
+              <h2 className="font-semibold text-slate-900 flex items-center gap-2">
+                <HiClock className="w-5 h-5 text-amber-500" />
+                Menunggu Konfirmasi
               </h2>
             </div>
             <div className="p-6 md:p-8">
               <div className="text-center mb-10">
-                <div className="w-24 h-24 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                  <HiCheckCircle className="w-12 h-12 text-green-600" />
+                <div className="w-20 h-20 bg-amber-50 border border-amber-100 rounded-full flex items-center justify-center mx-auto mb-5">
+                  <HiClock className="w-10 h-10 text-amber-500" />
                 </div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-3">
-                  Pembayaran Berhasil Dikonfirmasi!
+                <h3 className="text-2xl font-bold text-slate-900 mb-2">
+                  Bukti Pembayaran Sedang Diproses
                 </h3>
-                <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-                  Terima kasih! Pembayaran Anda telah berhasil diverifikasi dan
-                  pendaftaran Santi telah aktif.
+                <p className="text-slate-500 max-w-lg mx-auto">
+                  Bukti transfer Anda telah diterima dan sedang diverifikasi oleh panitia. Anda akan mendapatkan notifikasi setelah pembayaran dikonfirmasi.
                 </p>
               </div>
-              <div className="mb-8 pb-8 border-b border-gray-200">
-                <div className="flex mb-4">
-                  <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center mr-4 flex-shrink-0">
-                    <span className="font-bold text-gray-700 text-lg">1</span>
-                  </div>
-                  <h3 className="text-xl font-bold text-gray-900">
-                    Cetak Bukti Pembayaran
-                  </h3>
+              <div className="mt-10 pt-6 border-t border-slate-100 flex justify-end">
+                <button
+                  onClick={() => (window.location.href = "/PublicWeb/dashboard")}
+                  className="px-6 py-2.5 bg-green-700 hover:bg-green-800 text-white text-sm font-medium rounded transition-colors"
+                >
+                  Kembali ke Dashboard
+                </button>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* SECTION 3: SUCCESS STATE */}
+        {paymentStatus === "success" && (
+          <section className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
+            <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50">
+              <h2 className="font-semibold text-slate-900 flex items-center gap-2">
+                <HiCheckCircle className="w-5 h-5 text-green-600" />
+                Status Konfirmasi
+              </h2>
+            </div>
+
+            <div className="p-6 md:p-8">
+              {/* Success Header */}
+              <div className="text-center mb-10">
+                <div className="w-20 h-20 bg-green-50 border border-green-100 rounded-full flex items-center justify-center mx-auto mb-5">
+                  <HiCheckCircle className="w-10 h-10 text-green-600" />
                 </div>
-                <p className="text-gray-600 mb-4 ml-14">
-                  Simpan bukti pembayaran ini sebagai arsip dan dibawa saat
-                  kedatangan ke pesantren.
+                <h3 className="text-2xl font-bold text-slate-900 mb-2">
+                  Pembayaran Berhasil Dikonfirmasi!
+                </h3>
+                <p className="text-slate-500 max-w-lg mx-auto">
+                  Terima kasih. Pembayaran Anda telah diverifikasi dan
+                  pendaftaran santri kini aktif.
                 </p>
-                <div className="ml-14">
+              </div>
+
+              {/* Step 1: Print */}
+              <div className="mb-8 pb-8 border-b border-slate-100 flex flex-col sm:flex-row gap-4 sm:items-start">
+                <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center shrink-0 text-slate-600 font-bold text-sm">
+                  1
+                </div>
+                <div className="flex-1">
+                  <h4 className="font-bold text-slate-900 mb-1">
+                    Cetak Bukti Pembayaran
+                  </h4>
+                  <p className="text-sm text-slate-500 mb-3">
+                    Simpan kwitansi ini sebagai arsip dan tunjukkan saat
+                    kedatangan.
+                  </p>
                   <button
                     onClick={async () => {
                       const userData = localStorage.getItem("user");
                       if (userData) {
                         const user = JSON.parse(userData);
                         try {
-                          const paymentRes = await apiFetch(`/api/pembayaran/email/${encodeURIComponent(user.email)}`);
+                          const paymentRes = await apiFetch(
+                            `/api/pembayaran/email/${encodeURIComponent(user.email)}`,
+                          );
                           const paymentData = await paymentRes.json();
                           if (paymentData.data?.id_pendaftaran) {
                             window.location.href = `/PublicWeb/pembayaran/buktipembayaran?id=${paymentData.data.id_pendaftaran}`;
@@ -536,87 +603,82 @@ export default function PembayaranPage() {
                         }
                       }
                     }}
-                    className="px-5 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 font-medium flex items-center transition-colors"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded text-sm font-medium hover:bg-slate-50 transition-colors"
                   >
-                    <HiPrinter className="w-5 h-5 mr-2" />
-                    Cetak Kwitansi
+                    <HiPrinter className="w-4 h-4" />
+                    Unduh Kwitansi PDF
                   </button>
                 </div>
               </div>
-              <div className="mb-8 pb-8 border-b border-gray-200">
-                <div className="flex mb-4">
-                  <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center mr-4 flex-shrink-0">
-                    <span className="font-bold text-gray-700 text-lg">2</span>
-                  </div>
-                  <h3 className="text-xl font-bold text-gray-900">
-                    Jadwal Kedatangan ke pesantren
-                  </h3>
+
+              {/* Step 2: Schedule */}
+              <div className="mb-8 pb-8 border-b border-slate-100 flex flex-col sm:flex-row gap-4 sm:items-start">
+                <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center shrink-0 text-slate-600 font-bold text-sm">
+                  2
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 ml-14">
-                  <div className="p-4 bg-gray-50 rounded-xl border border-gray-200">
-                    <p className="text-xs font-medium text-gray-500 mb-1">
-                      TANGGAL KEDATANGAN
-                    </p>
-                    <p className="font-bold text-xl text-gray-900">
-                      Senin, 15 Juli 2026
-                    </p>
-                  </div>
-                  <div className="p-4 bg-gray-50 rounded-xl border border-gray-200">
-                    <p className="text-xs font-medium text-gray-500 mb-1">
-                      WAKTU KEDATANGAN
-                    </p>
-                    <p className="font-bold text-xl text-gray-900">
-                      08.00 - 16.00 WIB
-                    </p>
-                  </div>
-                  <div className="p-4 bg-gray-50 rounded-xl border border-gray-200 md:col-span-3">
-                    <p className="text-xs font-medium text-gray-500 mb-1">
-                      LOKASI PESANTREN
-                    </p>
-                    <p className="font-medium text-gray-900">
-                      Pondok Pesantren Delima Tanjung Rejo
-                    </p>
-                    <p className="text-gray-600 mt-1">
-                      Cangkreng, Mangaran, Kec. Mangaran, Kabupaten Situbondo,
-                      Jawa Timur 86363
-                    </p>
-                  </div>
-                </div>
-              </div>
-              <div>
-                <div className="flex mb-4">
-                  <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center mr-4 flex-shrink-0">
-                    <span className="font-bold text-gray-700 text-lg">3</span>
-                  </div>
-                  <h3 className="text-xl font-bold text-gray-900">
-                    Persiapan Kedatangan
-                  </h3>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 ml-14">
-                  {[
-                    "Bukti pembayaran (hasil cetak)",
-                    "Perlengkapan pribadi Santi",
-                  ].map((item, index) => (
-                    <div
-                      key={index}
-                      className="flex items-start p-3 bg-gray-50 rounded-lg"
-                    >
-                      <HiCheck className="w-5 h-5 mr-2 mt-0.5 flex-shrink-0 text-green-600" />
-                      <span className="text-gray-700">{item}</span>
+                <div className="flex-1 w-full">
+                  <h4 className="font-bold text-slate-900 mb-3">
+                    Jadwal Kedatangan
+                  </h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="p-3 bg-slate-50 rounded border border-slate-200">
+                      <p className="text-[10px] text-slate-500 font-bold uppercase mb-1">
+                        Tanggal
+                      </p>
+                      <p className="font-semibold text-slate-900 text-sm">
+                        Senin, 15 Juli 2026
+                      </p>
                     </div>
-                  ))}
+                    <div className="p-3 bg-slate-50 rounded border border-slate-200">
+                      <p className="text-[10px] text-slate-500 font-bold uppercase mb-1">
+                        Waktu
+                      </p>
+                      <p className="font-semibold text-slate-900 text-sm">
+                        08.00 - 16.00 WIB
+                      </p>
+                    </div>
+                    <div className="p-3 bg-slate-50 rounded border border-slate-200 sm:col-span-1">
+                      <p className="text-[10px] text-slate-500 font-bold uppercase mb-1">
+                        Lokasi
+                      </p>
+                      <p className="font-semibold text-slate-900 text-sm leading-tight">
+                        Pondok Pesantren Delima Tanjung Rejo, Cangkreng - Mangaran - Situbondo
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
-              <div className="mt-10 pt-6 border-t flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                <div className="flex items-start text-gray-600">
-                  <HiExclamation className="w-6 h-6 mr-3 mt-1 flex-shrink-0 text-yellow-500" />
-                  <p className="text-sm">
-                    <br className="hidden md:block" />
-                  </p>
+
+              {/* Step 3: Prep */}
+              <div className="flex flex-col sm:flex-row gap-4 sm:items-start">
+                <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center shrink-0 text-slate-600 font-bold text-sm">
+                  3
                 </div>
+                <div className="flex-1">
+                  <h4 className="font-bold text-slate-900 mb-3">
+                    Persiapan Kedatangan
+                  </h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {[
+                      "Bukti pembayaran (hasil cetak)",
+                      "Perlengkapan pribadi santri",
+                    ].map((item, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center gap-2 p-3 bg-slate-50 rounded border border-slate-100"
+                      >
+                        <HiCheck className="w-4 h-4 text-green-600 shrink-0" />
+                        <span className="text-sm text-slate-700">{item}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-10 pt-6 border-t border-slate-100 flex justify-end">
                 <button
                   onClick={() => (window.location.href = "/")}
-                  className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl transition-all duration-300 shadow-sm hover:shadow-md flex items-center justify-center"
+                  className="px-6 py-2.5 bg-green-700 hover:bg-green-800 text-white text-sm font-medium rounded transition-colors"
                 >
                   Kembali
                 </button>
@@ -624,7 +686,7 @@ export default function PembayaranPage() {
             </div>
           </section>
         )}
-      </div> 
+      </div>
     </div>
   );
 }

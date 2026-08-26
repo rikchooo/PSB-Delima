@@ -5,14 +5,22 @@ import { useEffect, useState } from "react";
 import { HiOutlineClipboard, HiOutlineCheckCircle, HiOutlineBell, HiOutlineCurrencyDollar, HiOutlineCalendar, HiOutlineUser, HiOutlineCloudUpload, HiOutlineCheck, HiOutlineArrowNarrowRight, HiOutlineClock, HiOutlineStar, HiOutlineDocumentText, HiOutlineHome, HiOutlineIdentification, HiOutlineAcademicCap, HiOutlineCamera, HiOutlineHeart } from "react-icons/hi";
 import { FaInstagram, FaFacebook, FaYoutube, FaTiktok } from "react-icons/fa";
 import { apiFetch } from "@/lib/api";
+import { getAuthToken } from "@/lib/auth";
+import { useRouter } from "next/navigation";
 const DEFAULT_SCHEDULE = {
   wave1: "1 Jan - 31 Mar 2026",
   wave2: "1 Apr - 30 Jun 2026",
   wave3: "1 Jul - 30 Sep 2026",
 };
 export default function LandingPage() {
+  const router = useRouter();
   const [registrationSchedule, setRegistrationSchedule] = useState(DEFAULT_SCHEDULE);
   const [activeYear, setActiveYear] = useState(null);
+  useEffect(() => {
+    if (getAuthToken()) {
+      router.replace('/PublicWeb/dashboard');
+    }
+  }, [router]);
   useEffect(() => {
     const loadSettings = async () => {
       try {

@@ -6,13 +6,13 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import "@/styles/globals.css";
 export default function LaporanPage() {
-  const [pembayaran, setPembayaran] = useState(null);
-  const [error, setError] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [biaya, setBiaya] = useState(0);
-  const [settings, setSettings] = useState({});
-  const router = useRouter();
-  const searchParams = useSearchParams();
+   const [pembayaran, setPembayaran] = useState(null);
+   const [error, setError] = useState(null);
+   const [loading, setLoading] = useState(true);
+   const [biaya, setBiaya] = useState(0);
+   const [settings, setSettings] = useState({});
+   const router = useRouter();
+   const searchParams = useSearchParams();
   useEffect(() => {
     const fetchPembayaran = async () => {
       if (!getAuthToken()) {
@@ -44,15 +44,15 @@ export default function LaporanPage() {
             const biayaRes = await apiFetch(`/api/settings/biaya/${activeYear}`);
             if (biayaRes.ok) {
               const biayaData = await biayaRes.json();
-              biayaValue = biayaData.biaya || 0;
+              biayaValue = biayaData.data?.biaya || 0;
             }
           }
         } catch (settingsErr) {
           console.warn('Settings not available, using payment nominal fallback', settingsErr);
         }
         if (!biayaValue && paymentData.nominal) {
-          const parsed = parseInt(paymentData.nominal, 10);
-          if (!isNaN(parsed)) biayaValue = parsed;
+          const parsed = Number(paymentData.nominal);
+          if (!isNaN(parsed) && parsed > 0) biayaValue = parsed;
         }
         setBiaya(biayaValue);
         setError(null);
@@ -113,7 +113,7 @@ export default function LaporanPage() {
         return status;
     }
   };
-  const nominal = biaya || pembayaran.nominal || 0;
+  const nominal = biaya || 0;
   const terbilang = (() => {
     const bilangan = [
       "",
@@ -156,7 +156,7 @@ export default function LaporanPage() {
     };
     return (penggalan(nominal) + " Rupiah").replace(/\s+/g, " ").trim();
   })();
-  const noKwitansi = `PSB-${String(pembayaran.id ?? searchParams.get("id") ?? "-").padStart(4, '0')}`;
+  const noKwitansi = pembayaran.no_kwitansi || `PSB-${String(pembayaran.id_pendaftaran ?? searchParams.get("id") ?? "-").padStart(4, '0')}`;
   const noRegistrasi = `PSB-${String(pembayaran.id_pendaftaran ?? searchParams.get("id") ?? "-").padStart(4, '0')}`;
   return (
     <div className="kwitansi-wrapper">
@@ -200,8 +200,8 @@ export default function LaporanPage() {
                     <td>: {noRegistrasi}</td>
                   </tr>
                   <tr>
-                    <td>Tanggal</td>
-                    <td>: {formatTanggal(pembayaran.created_at)}</td>
+                   <td>Tanggal</td>
+                   <td>: {formatTanggal(new Date().toISOString())}</td>
                   </tr>
                 </tbody>
               </table>
@@ -218,7 +218,7 @@ export default function LaporanPage() {
                 <tr>
                   <td className="label">Email</td>
                   <td className="colon">:</td>
-                  <td className="value">{pembayaran.email || "-"}</td>
+                  <td className="value">{pembayaran.user?.email || pembayaran.email || "-"}</td>
                 </tr>
                 <tr>
                   <td className="label">Uang Sejumlah</td>
@@ -258,7 +258,7 @@ export default function LaporanPage() {
               <p className="mb-3 font-semibold">Mengetahui,</p>
               <div className="flex flex-col items-center">
                 {settings?.bendahara_ttd && (
-                  <Image src={settings.bendahara_ttd} alt="TTD Bendahara" width={40} height={40} className="h-10 w-auto object-contain" />
+                  <Image src={settings.bendahara_ttd} alt="TTD Bendahara" width={40} height={40} unoptimized className="h-10 w-auto object-contain" />
                 )}
               <p className="font-semibold underline mt-1">{settings?.bendahara_nama || 'Nama Bendahara'}</p>
               <p className="text-[10px] text-gray-500 mt-1">Bendahara</p>

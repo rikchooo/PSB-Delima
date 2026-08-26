@@ -1,28 +1,21 @@
 "use client";
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { apiFetch } from "@/lib/api";
 import { getAuthToken, getPrivateSession } from "@/lib/auth";
 import { useRouter } from "next/navigation";
 import PrivateHeader from "@/components/PrivateHeader";
-import { HiUserGroup, HiCheckCircle, HiCurrencyDollar, HiInbox, HiChartBar, HiClipboard, HiEye, HiX, HiClock, HiCheck } from "react-icons/hi";
+import { HiUserGroup, HiCheckCircle, HiCurrencyDollar, HiInbox, HiChartBar, HiClipboard, HiClock, HiCheck } from "react-icons/hi";
 import "@/styles/globals.css";
 export default function PengasuhDashboard() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [santri, setSantri] = useState([]);
-  const dropdownRef = useRef(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [selectedSantri, setSelectedSantri] = useState(null);
-  const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [biaya, setBiaya] = useState(0);
   const [activeYear, setActiveYear] = useState("");
   const router = useRouter();
-  const activeYearRef = useRef(activeYear);
-  useEffect(() => {
-    activeYearRef.current = activeYear;
-  }, [activeYear]);
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -62,7 +55,7 @@ export default function PengasuhDashboard() {
             parentIbu: item.nama_ibu || "-",
             parentAyahPhone: item.telp_ayah || "-",
             parentIbuPhone: item.telp_ibu || "-",
-            address: item.alamat_santri || "-",
+            address: `${item.alamat_santri || ''} ${item.desa_santri || ''} ${item.kecamatan_santri || ''} ${item.kabupaten_santri || ''} ${item.provinsi_santri || ''}`.trim() || "-",
             status: item.status,
             acceptedDate: item.created_at,
             room: "-",
@@ -71,7 +64,7 @@ export default function PengasuhDashboard() {
             paymentAmount: item.nominal ? parseInt(item.nominal) : 0,
             paymentDate: item.pembayaran_created_at || null,
             paymentMethod: item.metode_pembayaran || "-",
-            paymentProof: item.bukti_pembayaran || "-",
+            paymentProof: item.bukti_pembayaran || null,
             quranScore: item.nilai_alquran || 0,
             kitabScore: item.nilai_kitab || 0,
             quranLevel: levelAlquran,
@@ -105,8 +98,8 @@ export default function PengasuhDashboard() {
           const year = settingsData.data?.active_year || new Date().getFullYear().toString();
           const biayaRes = await apiFetch(`/api/settings/biaya/${year}`);
           if (biayaRes.ok) {
-            const biayaData = await biayaRes.json();
-            setBiaya(biayaData.biaya || 0);
+          const biayaData = await biayaRes.json();
+          setBiaya(biayaData.data?.biaya || 0);
           }
         }
       } catch (err) {
@@ -114,16 +107,6 @@ export default function PengasuhDashboard() {
       }
     };
     fetchSettings();
-  }, []);
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
   }, []);
   const yearFilteredSantri = activeYear
     ? santri.filter(item => String(item.tahun_pendaftaran) === activeYear)
@@ -145,8 +128,10 @@ export default function PengasuhDashboard() {
             (s.status === "accepted" || s.status === "completed")) ||
           (filterStatus === "belum" &&
             s.status !== "accepted" &&
-            s.status !== "completed");
-        return matchesSearch && matchesStatus;
+            s.status !== "completed" &&
+            s.status !== "rejected");
+        const isNotRejected = s.status !== "rejected";
+        return matchesSearch && matchesStatus && isNotRejected;
       })
     : [];
   const itemsPerPage = 10;
@@ -207,22 +192,6 @@ export default function PengasuhDashboard() {
       case "completed": return <HiCheckCircle className="w-5 h-5 text-green-600" />;
       case "accepted": return <HiCheck className="w-5 h-5 text-green-600" />;
       default: return <HiClock className="w-5 h-5 text-yellow-600" />;
-    }
-  };
-  const [biayaDetail, setBiayaDetail] = useState(0);
-  const openDetail = async (s) => {
-    setSelectedSantri(s);
-    setIsDetailOpen(true);
-    setBiayaDetail(0);
-    try {
-      const year = activeYear || new Date(s.acceptedDate || s.createdAt).getFullYear().toString();
-      const res = await apiFetch(`/api/settings/biaya/${year}`);
-      if (res.ok) {
-        const data = await res.json();
-        setBiayaDetail(data.biaya || 0);
-      }
-    } catch (err) {
-      console.error('Failed to fetch detail biaya', err);
     }
   };
   if (error) {
@@ -381,7 +350,7 @@ export default function PengasuhDashboard() {
                     {paginatedSantri.map((s, i) => {
                       const actStatus = getActivityStatus(s);
                       return (
-                        <tr key={s.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => openDetail(s)}>
+                        <tr key={s.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => router.push(`/PrivateWeb/pengasuh/santri/${s.id}`)}>
                           <td className="px-4 py-3 whitespace-nowrap">{(currentPage - 1) * itemsPerPage + i + 1}</td>
                           <td className="px-4 py-3 whitespace-nowrap font-medium text-gray-900">{s.name}</td>
                           <td className="px-4 py-3 whitespace-nowrap">{s.quranScore}</td>
@@ -464,162 +433,8 @@ export default function PengasuhDashboard() {
               </div>
             </div>
           </div>
-        </section>
-        <section aria-labelledby="activity-heading">
-          <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h3 id="activity-heading" className="text-lg font-semibold text-gray-900">
-                Aktivitas Santri Baru
-              </h3>
-            </div>
-            {paginatedSantri.length === 0 ? (
-              <div className="text-center py-12">
-                <HiInbox className="mx-auto h-12 w-12 text-gray-400" />
-                <h3 className="mt-2 text-sm font-medium text-gray-900">
-                  Tidak ada aktivitas
-                </h3>
-                <p className="mt-1 text-sm text-gray-500">
-                  Belum ada pendaftaran santri baru
-                </p>
-              </div>
-            ) : (
-              <div className="divide-y divide-gray-200">
-                {paginatedSantri.slice(0, 5).map((s) => {
-                  const actStatus = getActivityStatus(s);
-                  return (
-                    <div
-                      key={s.id}
-                      className="p-4 hover:bg-gray-50 transition-colors cursor-pointer"
-                      onClick={() => openDetail(s)}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3">
-                            <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
-                              actStatus === 'completed' ? 'bg-green-100' : 
-                              actStatus === 'examined' ? 'bg-blue-100' :
-                              actStatus === 'paid' ? 'bg-green-100' :
-                              actStatus === 'accepted' ? 'bg-yellow-100' : 
-                              'bg-gray-100'
-                            }`}>
-                              {getActivityIcon(actStatus)}
-                            </div>
-                            <div>
-                              <p className="font-medium text-gray-900">
-                                {s.name}
-                              </p>
-                              <p className="text-sm text-gray-500">{getActivityLabel(actStatus)}</p>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-sm text-gray-500">
-                            {s.createdAt
-                              ? new Date(s.createdAt).toLocaleDateString("id-ID")
-                              : "-"}
-                          </p>
-                          <span
-                            className={`inline-flex items-center gap-1 px-2 py-1 text-xs rounded-full ${
-                              actStatus === "completed" ? "bg-green-100 text-green-800" :
-                              actStatus === "examined" ? "bg-blue-100 text-blue-800" :
-                              actStatus === "paid" ? "bg-green-100 text-green-800" :
-                              actStatus === "accepted" ? "bg-yellow-100 text-yellow-800" :
-                              "bg-gray-100 text-gray-800"
-                            }`}
-                          >
-                            {getActivityLabel(actStatus)}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        </section>
+</section>
       </main>
-      {isDetailOpen && selectedSantri && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 px-4">
-          <div className="w-full max-w-3xl bg-white rounded-xl shadow-xl overflow-hidden max-h-[90vh] overflow-y-auto">
-            <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center sticky top-0 bg-white z-10">
-              <h3 className="text-lg font-semibold text-gray-900">Detail Santri</h3>
-              <button onClick={() => setIsDetailOpen(false)} className="p-2 hover:bg-gray-100 rounded-full">
-                <HiX className="w-5 h-5 text-gray-600" />
-              </button>
-            </div>
-            <div className="p-6 space-y-6">
-              <div>
-                <h4 className="font-semibold text-gray-900 mb-2">Data Santri</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-                  <div><span className="text-gray-500">Nama:</span> <span className="font-medium">{selectedSantri.name}</span></div>
-                  <div><span className="text-gray-500">Email:</span> <span className="font-medium">{selectedSantri.email}</span></div>
-                  <div><span className="text-gray-500">Alamat:</span> <span className="font-medium">{selectedSantri.address}</span></div>
-                  <div><span className="text-gray-500">Sekolah:</span> <span className="font-medium">{selectedSantri.school}</span></div>
-                </div>
-              </div>
-              <div>
-                <h4 className="font-semibold text-gray-900 mb-2">Data Orang Tua</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-                  <div><span className="text-gray-500">Ayah:</span> <span className="font-medium">{selectedSantri.parentAyah}</span></div>
-                  <div><span className="text-gray-500">Ibu:</span> <span className="font-medium">{selectedSantri.parentIbu}</span></div>
-                  <div><span className="text-gray-500">HP Ayah:</span> <span className="font-medium">{selectedSantri.parentAyahPhone}</span></div>
-                  <div><span className="text-gray-500">HP Ibu:</span> <span className="font-medium">{selectedSantri.parentIbuPhone}</span></div>
-                </div>
-              </div>
-              <div>
-                <h4 className="font-semibold text-gray-900 mb-2">Hasil Pendaftaran</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-                  <div><span className="text-gray-500">Status:</span> <span className="font-medium capitalize">{selectedSantri.status}</span></div>
-                  <div><span className="text-gray-500">Tanggal Daftar:</span> <span className="font-medium">{selectedSantri.acceptedDate ? new Date(selectedSantri.acceptedDate).toLocaleDateString("id-ID") : '-'}</span></div>
-                </div>
-              </div>
-              <div>
-                <h4 className="font-semibold text-gray-900 mb-2">Data Pembayaran</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-                  <div><span className="text-gray-500">Status:</span> <span className="font-medium capitalize">{selectedSantri.paymentStatus}</span></div>
-                   <div><span className="text-gray-500">Nominal:</span> <span className="font-medium">Rp {biayaDetail ? biayaDetail.toLocaleString("id-ID") : '-'}</span></div>
-                  <div><span className="text-gray-500">Metode:</span> <span className="font-medium">{selectedSantri.paymentMethod}</span></div>
-                  <div><span className="text-gray-500">Tanggal:</span> <span className="font-medium">{selectedSantri.paymentDate ? new Date(selectedSantri.paymentDate).toLocaleDateString("id-ID") : '-'}</span></div>
-                  {selectedSantri.paymentProof && selectedSantri.paymentProof !== "-" && (
-                    <div className="md:col-span-2">
-                      <span className="text-gray-500">Bukti Pembayaran:</span>{" "}
-                      <a href={selectedSantri.paymentProof} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
-                        Lihat Bukti
-                      </a>
-                    </div>
-                  )}
-                </div>
-              </div>
-              <div>
-                <h4 className="font-semibold text-gray-900 mb-2">Hasil Pengujian</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-                  <div><span className="text-gray-500">Nilai Al-Quran:</span> <span className="font-medium">{selectedSantri.quranScore}</span></div>
-                  <div><span className="text-gray-500">Level Al-Quran:</span> <span className="font-medium capitalize">{selectedSantri.quranLevel}</span></div>
-                  <div><span className="text-gray-500">Nilai Kitab:</span> <span className="font-medium">{selectedSantri.kitabScore}</span></div>
-                  <div><span className="text-gray-500">Level Kitab:</span> <span className="font-medium capitalize">{selectedSantri.kitabLevel}</span></div>
-                  <div className="md:col-span-2"><span className="text-gray-500">Catatan Penguji:</span> <span className="font-medium">{selectedSantri.examNotes}</span></div>
-                  <div><span className="text-gray-500">Tanggal Pengujian:</span> <span className="font-medium">{selectedSantri.examDate !== '-' ? new Date(selectedSantri.examDate).toLocaleDateString("id-ID") : '-'}</span></div>
-                </div>
-              </div>
-              <div>
-                <h4 className="font-semibold text-gray-900 mb-2">Riwayat Status</h4>
-                <div className="flex items-center gap-2 text-sm">
-                  <span className={`px-2 py-1 rounded-full ${selectedSantri.status === 'accepted' || selectedSantri.status === 'completed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
-                    {selectedSantri.status === 'accepted' || selectedSantri.status === 'completed' ? 'Diterima' : 'Menunggu'}
-                  </span>
-                  <span className={`px-2 py-1 rounded-full ${['lunas','confirmed','success'].includes(selectedSantri.paymentStatus) ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
-                    {['lunas','confirmed','success'].includes(selectedSantri.paymentStatus) ? 'Lunas' : selectedSantri.paymentStatus}
-                  </span>
-                  {(selectedSantri.quranScore > 0 || selectedSantri.kitabScore > 0) && (
-                    <span className="px-2 py-1 rounded-full bg-blue-100 text-blue-800">Sudah Diuji</span>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

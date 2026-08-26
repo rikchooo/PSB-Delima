@@ -55,12 +55,14 @@ export default function LoginPage() {
         setLoading(false);
         return;
       }
-      if (!data.token) {
+      const token = data.data?.token;
+      const user = data.data?.user;
+      if (!token) {
         setError("Login gagal: token tidak diterima dari server");
         setLoading(false);
         return;
       }
-      setAuthSession({ token: data.token, user: data.user, mode: "private" });
+      setAuthSession({ token, user, mode: "private" });
       router.push(`/PrivateWeb/${role}`);
     } catch (err) {
       setError(err.message || "Terjadi kesalahan. Silakan coba lagi.");
