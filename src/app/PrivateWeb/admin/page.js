@@ -4,7 +4,7 @@ import { apiFetch } from "@/lib/api";
 import { getAuthToken, getPrivateSession } from "@/lib/auth";
 import { useRouter } from "next/navigation";
 import PrivateHeader from "@/components/PrivateHeader";
-import { HiUsers, HiClock, HiCheckCircle, HiXCircle, HiPrinter, HiChevronDown, HiTrendingUp, HiExclamation, HiEye, HiCheck, HiX, HiSave, HiCog } from "react-icons/hi";
+import { HiUsers, HiClock, HiCheckCircle, HiXCircle, HiPrinter, HiChevronDown, HiTrendingUp, HiExclamation, HiEye, HiCheck, HiX, HiSave, HiCog, HiCurrencyDollar } from "react-icons/hi";
 const REGISTRATION_SCHEDULE_KEY = "registration_schedule";
 const DEFAULT_REGISTRATION_SCHEDULE = {
   wave1: "1 Jan - 31 Mar 2026",
@@ -234,11 +234,7 @@ export default function AdminDashboard() {
     }
   };
   const handleStatusChange = (id, newStatus) => {
-    const statusText = newStatus === 'accepted' ? 'DITERIMA' : 'DITOLAK';
-    const confirmation = confirm(`Apakah Anda yakin ingin mengubah status pendaftaran ini menjadi ${statusText}?\n\nTindakan ini tidak dapat dibatalkan.`);
-    if (confirmation) {
-      updateStatus(id, newStatus);
-    }
+    updateStatus(id, newStatus);
   };
   const handleViewDetail = (id) => {
     router.push(`/PrivateWeb/admin/santri/${id}`);

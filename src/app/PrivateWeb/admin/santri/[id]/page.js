@@ -132,22 +132,6 @@ export default function SantriDetail() {
     }
   };
 
-  const updatePaymentStatus = async (newStatus) => {
-    if (!pembayaran?.id) return;
-    try {
-      const res = await apiFetch(`/api/pembayaran/${pembayaran.id}`, {
-        method: 'PATCH',
-        body: JSON.stringify({ status_pembayaran: newStatus }),
-      });
-      if (!res.ok) throw new Error('Gagal memperbarui status pembayaran');
-      const updated = await res.json();
-      setPembayaran(prev => ({ ...prev, status_pembayaran: newStatus, ...updated.data }));
-      alert(`Status pembayaran berhasil diubah menjadi ${newStatus}`);
-    } catch (err) {
-      alert(`Gagal memperbarui pembayaran: ${err.message}`);
-    }
-  };
-
   const getStatusBadge = (status) => {
     const statusConfig = {
       pending: { label: 'Menunggu', className: 'bg-yellow-100 text-yellow-800 border border-yellow-200' },
@@ -370,22 +354,11 @@ export default function SantriDetail() {
           {/* Bukti Pembayaran */}
           <section className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
             <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-emerald-50 to-white">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 flex items-center justify-center bg-emerald-100 rounded-lg">
-                    <HiCurrencyDollar className="w-5 h-5 text-emerald-600" />
-                  </div>
-                  <h2 className="text-lg font-bold text-gray-900">Bukti Pembayaran</h2>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 flex items-center justify-center bg-emerald-100 rounded-lg">
+                  <HiCurrencyDollar className="w-5 h-5 text-emerald-600" />
                 </div>
-                
-                {pembayaran?.status_pembayaran === 'submitted' && (
-                  <button
-                    onClick={() => updatePaymentStatus('lunas')}
-                    className="px-4 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition-colors shadow-sm"
-                  >
-                    Konfirmasi Lunas
-                  </button>
-                )}
+                <h2 className="text-lg font-bold text-gray-900">Bukti Pembayaran</h2>
               </div>
             </div>
             

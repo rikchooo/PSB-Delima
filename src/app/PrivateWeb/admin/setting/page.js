@@ -61,7 +61,7 @@ export default function SettingPage() {
         }
         if (scheduleRes.ok) {
           const data = await scheduleRes.json();
-          if (data.data) setSchedule(data.data);
+          if (data.data) setSchedule({ ...DEFAULT_SCHEDULE, ...data.data });
         }
         if (pendaftaranRes.ok) {
           const data = await pendaftaranRes.json();

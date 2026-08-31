@@ -2,7 +2,25 @@
 import "@/styles/globals.css";
 import Image from "next/image";
 import { useEffect, useState } from "react";
-import { HiOutlineClipboard, HiOutlineCheckCircle, HiOutlineBell, HiOutlineCurrencyDollar, HiOutlineCalendar, HiOutlineUser, HiOutlineCloudUpload, HiOutlineCheck, HiOutlineArrowNarrowRight, HiOutlineClock, HiOutlineStar, HiOutlineDocumentText, HiOutlineHome, HiOutlineIdentification, HiOutlineAcademicCap, HiOutlineCamera, HiOutlineHeart } from "react-icons/hi";
+import {
+  HiOutlineClipboard,
+  HiOutlineCheckCircle,
+  HiOutlineBell,
+  HiOutlineCurrencyDollar,
+  HiOutlineCalendar,
+  HiOutlineUser,
+  HiOutlineCloudUpload,
+  HiOutlineCheck,
+  HiOutlineArrowNarrowRight,
+  HiOutlineClock,
+  HiOutlineStar,
+  HiOutlineDocumentText,
+  HiOutlineHome,
+  HiOutlineIdentification,
+  HiOutlineAcademicCap,
+  HiOutlineCamera,
+  HiOutlineHeart,
+} from "react-icons/hi";
 import { FaInstagram, FaFacebook, FaYoutube, FaTiktok } from "react-icons/fa";
 import { apiFetch } from "@/lib/api";
 import { getAuthToken } from "@/lib/auth";
@@ -14,17 +32,18 @@ const DEFAULT_SCHEDULE = {
 };
 export default function LandingPage() {
   const router = useRouter();
-  const [registrationSchedule, setRegistrationSchedule] = useState(DEFAULT_SCHEDULE);
+  const [registrationSchedule, setRegistrationSchedule] =
+    useState(DEFAULT_SCHEDULE);
   const [activeYear, setActiveYear] = useState(null);
   useEffect(() => {
     if (getAuthToken()) {
-      router.replace('/PublicWeb/dashboard');
+      router.replace("/PublicWeb/dashboard");
     }
   }, [router]);
   useEffect(() => {
     const loadSettings = async () => {
       try {
-        const res = await apiFetch('/api/settings');
+        const res = await apiFetch("/api/settings");
         if (res.ok) {
           const data = await res.json();
           if (data.data?.active_year) {
@@ -40,7 +59,7 @@ export default function LandingPage() {
   useEffect(() => {
     const loadSchedule = async () => {
       try {
-        const res = await apiFetch('/api/settings/schedule');
+        const res = await apiFetch("/api/settings/schedule");
         if (res.ok) {
           const data = await res.json();
           if (data.data) {
@@ -86,16 +105,30 @@ export default function LandingPage() {
           </h2>
           <p className="text-3xl md:text-4xl font-semibold text-gray-800 mb-10">
             Pendaftaran Santri Baru <br className="hidden sm:block" />
-            Tahun Ajaran {activeYear ? `${activeYear} / ${parseInt(activeYear) + 1}` : '2026 / 2027'}
+            Tahun Ajaran{" "}
+            {activeYear
+              ? `${activeYear} / ${parseInt(activeYear) + 1}`
+              : "2026 / 2027"}
           </p>
           <div className="max-w-3xl mx-auto mb-12">
             <div className="w-24 h-1 bg-green-600 mx-auto mb-6 rounded-full" />
             <p className="text-lg md:text-xl text-gray-700 leading-relaxed">
               Mengantarkan manusia unggul dengan mengedapkan
-              <span className="font-semibold text-green-700"> keluhuran akhlak</span>,
-              <span className="font-semibold text-green-700"> cerdas berilmu</span>,
-              dan
-              <span className="font-semibold text-green-700"> bijak beramal</span>.
+              <span className="font-semibold text-green-700">
+                {" "}
+                keluhuran akhlak
+              </span>
+              ,
+              <span className="font-semibold text-green-700">
+                {" "}
+                cerdas berilmu
+              </span>
+              , dan
+              <span className="font-semibold text-green-700">
+                {" "}
+                bijak beramal
+              </span>
+              .
             </p>
           </div>
           <div className="flex flex-row gap-5 justify-center">
@@ -119,7 +152,7 @@ export default function LandingPage() {
               Jadwal Pendaftaran
             </span>
             <h3 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Pilih Gelombang Pendaftaran
+              Pilih Gelombang Pendaftaran Santri Baru
             </h3>
             <p className="text-gray-600 max-w-2xl mx-auto leading-relaxed mb-4">
               Pastikan Anda mendaftar pada gelombang yang sesuai untuk
@@ -139,12 +172,18 @@ export default function LandingPage() {
                 </div>
               </div>
               <div className="flex-1">
-                <h4 className="text-xl font-bold text-gray-900 mb-2">Gelombang I</h4>
+                <h4 className="text-xl font-bold text-gray-900 mb-2">
+                  Gelombang I
+                </h4>
                 <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg mb-4">
                   <HiOutlineCalendar className="w-4 h-4" />
-                  <span className="text-sm font-semibold text-gray-700">{registrationSchedule.wave1}</span>
+                  <span className="text-sm font-semibold text-gray-700">
+                    {registrationSchedule.wave1}
+                  </span>
                 </div>
-                <p className="text-gray-600 text-sm leading-relaxed">Kuota prioritas dengan benefit early bird.</p>
+                <p className="text-gray-600 text-sm leading-relaxed">
+                  Kuota prioritas dengan benefit early bird.
+                </p>
               </div>
             </div>
             <div className="group relative bg-white border border-green-200 hover:border-green-300 rounded-3xl p-8 hover:-translate-y-1 transition-all duration-300 flex flex-col h-full">
@@ -159,12 +198,18 @@ export default function LandingPage() {
                 </div>
               </div>
               <div className="flex-1">
-                <h4 className="text-xl font-bold text-gray-900 mb-2">Gelombang II</h4>
+                <h4 className="text-xl font-bold text-gray-900 mb-2">
+                  Gelombang II
+                </h4>
                 <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg mb-4">
                   <HiOutlineCalendar className="w-4 h-4" />
-                  <span className="text-sm font-semibold text-gray-700">{registrationSchedule.wave2}</span>
+                  <span className="text-sm font-semibold text-gray-700">
+                    {registrationSchedule.wave2}
+                  </span>
                 </div>
-                <p className="text-gray-600 text-sm leading-relaxed">Kuota reguler dengan proses standar.</p>
+                <p className="text-gray-600 text-sm leading-relaxed">
+                  Kuota reguler dengan proses standar.
+                </p>
               </div>
             </div>
             <div className="group relative bg-white border border-green-200 hover:border-green-300 rounded-3xl p-8 hover:-translate-y-1 transition-all duration-300 flex flex-col h-full">
@@ -179,12 +224,18 @@ export default function LandingPage() {
                 </div>
               </div>
               <div className="flex-1">
-                <h4 className="text-xl font-bold text-gray-900 mb-2">Gelombang III</h4>
+                <h4 className="text-xl font-bold text-gray-900 mb-2">
+                  Gelombang III
+                </h4>
                 <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg mb-4">
                   <HiOutlineCalendar className="w-4 h-4" />
-                  <span className="text-sm font-semibold text-gray-700">{registrationSchedule.wave3}</span>
+                  <span className="text-sm font-semibold text-gray-700">
+                    {registrationSchedule.wave3}
+                  </span>
                 </div>
-                <p className="text-gray-600 text-sm leading-relaxed">Kuota terbatas, seleksi lebih ketat.</p>
+                <p className="text-gray-600 text-sm leading-relaxed">
+                  Kuota terbatas, seleksi lebih ketat.
+                </p>
               </div>
             </div>
           </div>
@@ -195,7 +246,7 @@ export default function LandingPage() {
               Langkah Mudah
             </span>
             <h3 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Alur Pendaftaran
+              Alur Pendaftaran Santri Baru
             </h3>
             <p className="text-gray-600 max-w-2xl mx-auto leading-relaxed mb-4">
               Ikuti langkah-langkah berikut untuk menyelesaikan proses
@@ -220,7 +271,9 @@ export default function LandingPage() {
                   <HiOutlineClipboard className="w-5 h-5" />
                 </div>
                 <div className="mt-4 px-2">
-                  <h5 className="font-bold text-gray-900 text-sm">Isi Formulir</h5>
+                  <h5 className="font-bold text-gray-900 text-sm">
+                    Isi Formulir
+                  </h5>
                   <p className="text-xs text-gray-500 mt-1">Data pribadi</p>
                 </div>
               </div>
@@ -229,7 +282,9 @@ export default function LandingPage() {
                   <HiOutlineCloudUpload className="w-5 h-5" />
                 </div>
                 <div className="mt-4 px-2">
-                  <h5 className="font-bold text-gray-900 text-sm">Upload Berkas</h5>
+                  <h5 className="font-bold text-gray-900 text-sm">
+                    Upload Berkas
+                  </h5>
                   <p className="text-xs text-gray-500 mt-1">Dokumen</p>
                 </div>
               </div>
@@ -238,7 +293,9 @@ export default function LandingPage() {
                   <HiOutlineCheck className="w-5 h-5" />
                 </div>
                 <div className="mt-4 px-2">
-                  <h5 className="font-bold text-gray-900 text-sm">Verifikasi</h5>
+                  <h5 className="font-bold text-gray-900 text-sm">
+                    Verifikasi
+                  </h5>
                   <p className="text-xs text-gray-500 mt-1">Validasi admin</p>
                 </div>
               </div>
@@ -247,7 +304,9 @@ export default function LandingPage() {
                   <HiOutlineBell className="w-5 h-5" />
                 </div>
                 <div className="mt-4 px-2">
-                  <h5 className="font-bold text-gray-900 text-sm">Pemberitahuan</h5>
+                  <h5 className="font-bold text-gray-900 text-sm">
+                    Pemberitahuan
+                  </h5>
                   <p className="text-xs text-gray-500 mt-1">Hasil seleksi</p>
                 </div>
               </div>
@@ -256,7 +315,9 @@ export default function LandingPage() {
                   <HiOutlineCurrencyDollar className="w-5 h-5" />
                 </div>
                 <div className="mt-4 px-2">
-                  <h5 className="font-bold text-gray-900 text-sm">Pembayaran</h5>
+                  <h5 className="font-bold text-gray-900 text-sm">
+                    Pembayaran
+                  </h5>
                   <p className="text-xs text-gray-500 mt-1">Administrasi</p>
                 </div>
               </div>
@@ -270,7 +331,9 @@ export default function LandingPage() {
               </div>
               <div className="pt-2">
                 <h5 className="font-bold text-gray-900 text-base">Buat Akun</h5>
-                <p className="text-sm text-gray-500">Daftar dengan email aktif</p>
+                <p className="text-sm text-gray-500">
+                  Daftar dengan email aktif
+                </p>
               </div>
             </div>
             <div className="flex items-start gap-4">
@@ -278,8 +341,12 @@ export default function LandingPage() {
                 <HiOutlineClipboard className="w-5 h-5" />
               </div>
               <div className="pt-2">
-                <h5 className="font-bold text-gray-900 text-base">Isi Formulir</h5>
-                <p className="text-sm text-gray-500">Lengkapi data pribadi & pendidikan</p>
+                <h5 className="font-bold text-gray-900 text-base">
+                  Isi Formulir
+                </h5>
+                <p className="text-sm text-gray-500">
+                  Lengkapi data pribadi & pendidikan
+                </p>
               </div>
             </div>
             <div className="flex items-start gap-4">
@@ -287,8 +354,12 @@ export default function LandingPage() {
                 <HiOutlineCloudUpload className="w-5 h-5" />
               </div>
               <div className="pt-2">
-                <h5 className="font-bold text-gray-900 text-base">Upload Berkas</h5>
-                <p className="text-sm text-gray-500">Unggah dokumen persyaratan</p>
+                <h5 className="font-bold text-gray-900 text-base">
+                  Upload Berkas
+                </h5>
+                <p className="text-sm text-gray-500">
+                  Unggah dokumen persyaratan
+                </p>
               </div>
             </div>
             <div className="flex items-start gap-4">
@@ -296,8 +367,12 @@ export default function LandingPage() {
                 <HiOutlineCheck className="w-5 h-5" />
               </div>
               <div className="pt-2">
-                <h5 className="font-bold text-gray-900 text-base">Verifikasi Data</h5>
-                <p className="text-sm text-gray-500">Tim admin memvalidasi berkas</p>
+                <h5 className="font-bold text-gray-900 text-base">
+                  Verifikasi Data
+                </h5>
+                <p className="text-sm text-gray-500">
+                  Tim admin memvalidasi berkas
+                </p>
               </div>
             </div>
             <div className="flex items-start gap-4">
@@ -305,8 +380,12 @@ export default function LandingPage() {
                 <HiOutlineBell className="w-5 h-5" />
               </div>
               <div className="pt-2">
-                <h5 className="font-bold text-gray-900 text-base">Pemberitahuan</h5>
-                <p className="text-sm text-gray-500">Notifikasi hasil seleksi via email</p>
+                <h5 className="font-bold text-gray-900 text-base">
+                  Pemberitahuan
+                </h5>
+                <p className="text-sm text-gray-500">
+                  Notifikasi hasil seleksi via email
+                </p>
               </div>
             </div>
             <div className="flex items-start gap-4">
@@ -314,8 +393,12 @@ export default function LandingPage() {
                 <HiOutlineCurrencyDollar className="w-5 h-5" />
               </div>
               <div className="pt-2">
-                <h5 className="font-bold text-gray-900 text-base">Pembayaran</h5>
-                <p className="text-sm text-gray-500">Selesaikan administrasi keuangan</p>
+                <h5 className="font-bold text-gray-900 text-base">
+                  Pembayaran
+                </h5>
+                <p className="text-sm text-gray-500">
+                  Selesaikan administrasi keuangan
+                </p>
               </div>
             </div>
           </div>
@@ -329,28 +412,62 @@ export default function LandingPage() {
                   Lengkapi persyaratan
                 </span>
                 <h3 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3">
-                  Syarat Pendaftaran
+                  Syarat Pendaftaran Santri Baru
                 </h3>
                 <p className="text-gray-600 max-w-xl mx-auto leading-relaxed">
-                  Pastikan Anda memenuhi persyaratan untuk memastikan
-                  proses pendaftaran berjalan lancar.
+                  Pastikan Anda memenuhi persyaratan untuk memastikan proses
+                  pendaftaran berjalan lancar.
                 </p>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {[
-                  { icon: HiOutlineDocumentText, text: "Fotokopi Akta Kelahiran", color: "text-blue-500", bg: "bg-blue-100" },
-                  { icon: HiOutlineHome, text: "Fotokopi Kartu Keluarga", color: "text-emerald-500", bg: "bg-emerald-100" },
-                  { icon: HiOutlineIdentification, text: "KTP Orang Tua / Wali", color: "text-purple-500", bg: "bg-purple-100" },
-                  { icon: HiOutlineAcademicCap, text: "Ijazah / SKL (jika ada)", color: "text-amber-500", bg: "bg-amber-100" },
-                  { icon: HiOutlineCamera, text: "Pas Foto 3x4 (2 lembar)", color: "text-pink-500", bg: "bg-pink-100" },
-                  { icon: HiOutlineHeart, text: "Surat Keterangan Sehat", color: "text-red-500", bg: "bg-red-100" },
+                  {
+                    icon: HiOutlineDocumentText,
+                    text: "Fotokopi Akta Kelahiran",
+                    color: "text-blue-500",
+                    bg: "bg-blue-100",
+                  },
+                  {
+                    icon: HiOutlineHome,
+                    text: "Fotokopi Kartu Keluarga",
+                    color: "text-emerald-500",
+                    bg: "bg-emerald-100",
+                  },
+                  {
+                    icon: HiOutlineIdentification,
+                    text: "KTP Orang Tua / Wali",
+                    color: "text-purple-500",
+                    bg: "bg-purple-100",
+                  },
+                  {
+                    icon: HiOutlineAcademicCap,
+                    text: "Ijazah / SKL (jika ada)",
+                    color: "text-amber-500",
+                    bg: "bg-amber-100",
+                  },
+                  {
+                    icon: HiOutlineCamera,
+                    text: "Pas Foto 3x4 (2 lembar)",
+                    color: "text-pink-500",
+                    bg: "bg-pink-100",
+                  },
+                  {
+                    icon: HiOutlineHeart,
+                    text: "Surat Keterangan Sehat",
+                    color: "text-red-500",
+                    bg: "bg-red-100",
+                  },
                 ].map((item, i) => (
-                  <div 
-                    key={i} 
+                  <div
+                    key={i}
                     className="flex items-center gap-4 p-4 rounded-xl border border-green-100 hover:border-green-300 transition-all duration-300 group cursor-default"
                   >
-                    <div className={`w-12 h-12 flex items-center justify-center rounded-xl ${item.bg}`}>
-                      <item.icon className={`w-6 h-6 ${item.color} group-hover:scale-110 transition-all duration-300`} />
+                    <div
+                      className={`w-12 h-12 flex items-center justify-center rounded-xl ${item.bg}`}
+                    >
+                      <item.icon
+                        className={`w-6 h-6 ${item.color} group-hover:scale-110 transition-all duration-300`}
+                      />
                     </div>
                     <span className="text-gray-700 font-medium group-hover:text-gray-900 transition-colors">
                       {item.text}
@@ -368,11 +485,11 @@ export default function LandingPage() {
               Hubungi Kami
             </span>
             <h3 className="text-3xl md:text-4xl font-bold text-gray-900">
-              Tetap Terhubung dengan Pondok
+              Silakan Hubungi Melalui Saluran Resmi
             </h3>
             <p className="mt-3 text-gray-600 max-w-2xl mx-auto">
-              kami siap membantu proses pendaftaran Anda. Silakan hubungi
-              melalui saluran resmi berikut.
+              Butuh bantuan dalam proses pendaftaran? Siap melayani
+              pertanyaan Anda melalui kontak resmi di bawah ini.
             </p>
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -385,7 +502,13 @@ export default function LandingPage() {
                 className="flex items-center gap-4 p-5 bg-white border border-green-100 rounded-2xl hover:bg-green-50 hover:border-green-200 transition-all duration-200 group"
               >
                 <div className="w-12 h-12 flex items-center justify-center rounded-xl bg-white transition-transform">
-                  <Image src="/icons/WhatsAppIcon.png" alt="WhatsApp" width={32} height={32} className="w-8 h-8" />
+                  <Image
+                    src="/icons/WhatsAppIcon.png"
+                    alt="WhatsApp"
+                    width={32}
+                    height={32}
+                    className="w-8 h-8"
+                  />
                 </div>
                 <div>
                   <h4 className="font-semibold text-gray-900 group-hover:text-green-700 transition-colors">
@@ -393,9 +516,9 @@ export default function LandingPage() {
                   </h4>
                   <p className="text-sm text-gray-500">Respon cepat 24/7</p>
                 </div>
-                <HiOutlineArrowNarrowRight 
-                  alt="Link" 
-                  className="w-5 h-5 text-gray-400 ml-auto group-hover:translate-x-1 transition-transform" 
+                <HiOutlineArrowNarrowRight
+                  alt="Link"
+                  className="w-5 h-5 text-gray-400 ml-auto group-hover:translate-x-1 transition-transform"
                 />
               </a>
               <a
@@ -405,17 +528,25 @@ export default function LandingPage() {
                 className="flex items-center gap-4 p-5 bg-white border border-green-100 rounded-2xl hover:bg-green-50 hover:border-green-200 transition-all duration-200 group"
               >
                 <div className="w-12 h-12 flex items-center justify-center rounded-xl bg-white transition-transform">
-                  <Image src="/icons/GmailIcon.png" alt="Email" width={32} height={32} className="w-8 h-8" />
+                  <Image
+                    src="/icons/GmailIcon.png"
+                    alt="Email"
+                    width={32}
+                    height={32}
+                    className="w-8 h-8"
+                  />
                 </div>
                 <div>
                   <h4 className="font-semibold text-gray-900 group-hover:text-green-700 transition-colors">
                     Email Resmi
                   </h4>
-                  <p className="text-sm text-gray-500">delimatanjungrejo@gmail.com</p>
+                  <p className="text-sm text-gray-500">
+                    delimatanjungrejo@gmail.com
+                  </p>
                 </div>
-                <HiOutlineArrowNarrowRight 
-                  alt="Link" 
-                  className="w-5 h-5 text-gray-400 ml-auto group-hover:translate-x-1 transition-transform" 
+                <HiOutlineArrowNarrowRight
+                  alt="Link"
+                  className="w-5 h-5 text-gray-400 ml-auto group-hover:translate-x-1 transition-transform"
                 />
               </a>
               {/* Social media */}
@@ -424,29 +555,57 @@ export default function LandingPage() {
                   Ikuti Kami di Media Sosial
                 </h5>
                 <div className="grid grid-cols-4 gap-3">
-                  <a href="https://www.instagram.com/delima.cangkreng_" target="_blank" rel="noopener noreferrer" className="group flex flex-col items-center gap-2 p-3 bg-white rounded-xl border border-green-100 hover:border-pink-300 hover:shadow-md transition-all duration-200">
+                  <a
+                    href="https://www.instagram.com/delima.cangkreng_"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="group flex flex-col items-center gap-2 p-3 bg-white rounded-xl border border-green-100 hover:border-pink-300 hover:shadow-md transition-all duration-200"
+                  >
                     <div className="w-10 h-10 flex items-center justify-center rounded-lg bg-gradient-to-br from-yellow-400 via-pink-500 to-purple-600 group-hover:scale-110 transition-transform">
                       <FaInstagram className="w-7 h-7 text-white" />
                     </div>
-                    <span className="text-xs font-medium text-gray-700 group-hover:text-pink-600 transition-colors">Instagram</span>
+                    <span className="text-xs font-medium text-gray-700 group-hover:text-pink-600 transition-colors">
+                      Instagram
+                    </span>
                   </a>
-                  <a href="https://www.tiktok.com/@delima.cangkreng_" target="_blank" rel="noopener noreferrer" className="group flex flex-col items-center gap-2 p-3 bg-white rounded-xl border border-green-100 hover:border-gray-400 hover:shadow-md transition-all duration-200">
+                  <a
+                    href="https://www.tiktok.com/@delima.cangkreng_"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="group flex flex-col items-center gap-2 p-3 bg-white rounded-xl border border-green-100 hover:border-gray-400 hover:shadow-md transition-all duration-200"
+                  >
                     <div className="w-10 h-10 flex items-center justify-center rounded-lg bg-black group-hover:scale-110 transition-transform">
                       <FaTiktok className="w-7 h-7 text-white" />
                     </div>
-                    <span className="text-xs font-medium text-gray-700 group-hover:text-gray-800 transition-colors">TikTok</span>
+                    <span className="text-xs font-medium text-gray-700 group-hover:text-gray-800 transition-colors">
+                      TikTok
+                    </span>
                   </a>
-                  <a href="https://www.facebook.com/delima.cangkreng" target="_blank" rel="noopener noreferrer" className="group flex flex-col items-center gap-2 p-3 bg-white rounded-xl border border-green-100 hover:border-blue-300 hover:shadow-md transition-all duration-200">
+                  <a
+                    href="https://www.facebook.com/delima.cangkreng"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="group flex flex-col items-center gap-2 p-3 bg-white rounded-xl border border-green-100 hover:border-blue-300 hover:shadow-md transition-all duration-200"
+                  >
                     <div className="w-10 h-10 flex items-center justify-center rounded-lg bg-blue-600 group-hover:scale-110 transition-transform">
                       <FaFacebook className="w-7 h-7 text-white" />
                     </div>
-                    <span className="text-xs font-medium text-gray-700 group-hover:text-blue-600 transition-colors">Facebook</span>
+                    <span className="text-xs font-medium text-gray-700 group-hover:text-blue-600 transition-colors">
+                      Facebook
+                    </span>
                   </a>
-                  <a href="https://youtube.com/@delima.cangkreng_" target="_blank" rel="noopener noreferrer" className="group flex flex-col items-center gap-2 p-3 bg-white rounded-xl border border-green-100 hover:border-red-300 hover:shadow-md transition-all duration-200">
+                  <a
+                    href="https://youtube.com/@delima.cangkreng_"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="group flex flex-col items-center gap-2 p-3 bg-white rounded-xl border border-green-100 hover:border-red-300 hover:shadow-md transition-all duration-200"
+                  >
                     <div className="w-10 h-10 flex items-center justify-center rounded-lg bg-red-600 group-hover:scale-110 transition-transform">
                       <FaYoutube className="w-7 h-7 text-white" />
                     </div>
-                    <span className="text-xs font-medium text-gray-700 group-hover:text-red-600 transition-colors">YouTube</span>
+                    <span className="text-xs font-medium text-gray-700 group-hover:text-red-600 transition-colors">
+                      YouTube
+                    </span>
                   </a>
                 </div>
                 <p className="text-center text-sm text-gray-500 mt-4">

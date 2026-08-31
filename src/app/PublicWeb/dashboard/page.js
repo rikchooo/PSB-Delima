@@ -109,7 +109,8 @@ export default function DashboardPage() {
   const isRegistrationActive = settings.registration_active === 'true';
   const isAccepted = registrationStatus === 'accepted';
   const isSubmitted = registrationStatus === 'submitted';
-  const isRegistrationFilled = isSubmitted || isAccepted;
+  const isCompleted = registrationStatus === 'completed';
+  const isRegistrationFilled = isSubmitted || isAccepted || isCompleted;
   const isConfirmed = ['confirmed', 'lunas', 'success'].includes(paymentStatus);
   const isPaymentSubmitted = paymentStatus === 'submitted' || Boolean(paymentData);
   const hasNilai = nilaiData && nilaiData.nilai_alquran != null;
@@ -138,6 +139,18 @@ export default function DashboardPage() {
       case 'cancelled': return 'Ditolak';
       default: return status || '-';
     }
+  };
+
+  const getPaymentCardLabel = () => {
+    if (isConfirmed) return 'Sudah';
+    if (isPaymentSubmitted) return 'Proses';
+    return 'Belum';
+  };
+
+  const getPaymentCardSubtitle = () => {
+    if (isConfirmed) return 'Dikonfirmasi';
+    if (isPaymentSubmitted) return 'Menunggu';
+    return 'Belum';
   };
 
   if (loading) {
@@ -188,7 +201,7 @@ export default function DashboardPage() {
                 <div>
                   <p className="text-gray-600 text-sm font-medium">Pendaftaran</p>
                   <p className="text-3xl font-bold text-green-600 mt-2">
-                    {isRegistrationFilled ? 'Sudah' : 'Belum'}
+                    {isRegistrationFilled ? 'Selesai' : 'Belum'}
                   </p>
                   <p className="text-sm text-gray-600 mt-1">
                     {isRegistrationActive
@@ -204,19 +217,19 @@ export default function DashboardPage() {
 
             <button
               type="button"
-              onClick={() => isAccepted && router.push('/PublicWeb/pembayaran')}
-              disabled={!isAccepted}
+              onClick={() => isRegistrationFilled && router.push('/PublicWeb/pembayaran')}
+              disabled={!isRegistrationFilled}
               className={`bg-white rounded-xl shadow-lg p-6 border-l-4 border-blue-500 transition-all text-left w-full ${
-                isAccepted ? 'hover:shadow-xl cursor-pointer' : 'opacity-70 cursor-not-allowed'
+                isRegistrationFilled ? 'hover:shadow-xl cursor-pointer' : 'opacity-70 cursor-not-allowed'
               }`}
             >
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-gray-600 text-sm font-medium">Pembayaran</p>
                   <p className="text-3xl font-bold text-blue-600 mt-2">
-                    {isConfirmed ? 'Lunas' : isPaymentSubmitted ? 'Proses' : 'Belum'}
+                    {getPaymentCardLabel()}
                   </p>
-                  <p className="text-sm text-gray-600 mt-1">{getPaymentLabel(paymentStatus)}</p>
+                  <p className="text-sm text-gray-600 mt-1">{getPaymentCardSubtitle()}</p>
                 </div>
                 <div className="bg-blue-100 p-3 rounded-full">
                   <HiCurrencyDollar className="w-8 h-8 text-blue-600" />
